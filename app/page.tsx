@@ -1,6 +1,6 @@
 /**
  * app/page.tsx
- * Clean Professional Actor Grid (Stable Version)
+ * Clean Professional Actor Grid (Dark Version - 5 Columns)
  */
 
 import Image from "next/image";
@@ -18,30 +18,29 @@ export default async function HomePage() {
   const actors = await getActors();
 
   return (
-    <main className="min-h-screen py-14 px-6">
-      <div className="max-w-6xl mx-auto">
+    <main className="py-14 px-6">
+      <div className="max-w-7xl mx-auto">
 
         {/* Title */}
-        <h1 className="text-3xl font-semibold text-center mb-12 text-slate-800">
+        <h1 className="text-3xl font-semibold text-center mb-12 text-blue-300">
           A.TIPS Actors Directory
         </h1>
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* 🔥 5 COLUMN GRID */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-8">
           {actors.map((actor) => (
             <div
               key={actor.id}
               className="
-                bg-white
+                bg-[#1e293b]
                 rounded-xl
-                shadow-md
+                shadow-lg
                 overflow-hidden
                 transition-all duration-300
-                hover:shadow-xl
+                hover:shadow-2xl
                 hover:-translate-y-2
               "
             >
-
               {/* IMAGE */}
               <div className="relative w-full h-56 overflow-hidden">
                 <Image
@@ -56,11 +55,11 @@ export default async function HomePage() {
               <div className="p-6 text-center space-y-4">
 
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-800">
+                  <h2 className="text-lg font-semibold text-white">
                     {actor.name}
                   </h2>
 
-                  <p className="text-sm text-slate-600 mt-1">
+                  <p className="text-sm text-slate-400 mt-1">
                     {actor.bio}
                   </p>
                 </div>
@@ -74,7 +73,7 @@ export default async function HomePage() {
 
                 <Link
                   href={`/actors/${actor.id}`}
-                  className="inline-block text-sm font-semibold text-blue-600 hover:text-blue-800"
+                  className="inline-block text-sm font-semibold text-blue-400 hover:text-blue-300"
                 >
                   View Full Profile →
                 </Link>

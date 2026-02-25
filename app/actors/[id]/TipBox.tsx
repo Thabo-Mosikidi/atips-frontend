@@ -17,7 +17,6 @@ export default function TipBox({
   const handleTip = async () => {
     const numericAmount = Number(amount);
 
-    // 🔒 Frontend validation
     if (!numericAmount || numericAmount < 10) {
       alert("Minimum tip amount is R10");
       return;
@@ -34,8 +33,6 @@ export default function TipBox({
         body: JSON.stringify({
           actorId,
           actorName,
-
-          // ✅ IMPORTANT: Send cents because API expects amountCents
           amountCents: numericAmount * 100,
         }),
       });
@@ -43,13 +40,11 @@ export default function TipBox({
       const data = await res.json();
 
       if (!res.ok) {
-        // 🔴 Show backend error if any
         alert(data.error || "Checkout failed");
         setLoading(false);
         return;
       }
 
-      // ✅ Redirect to Stripe Checkout
       window.location.href = data.url;
     } catch (err) {
       console.error("Checkout error:", err);
@@ -60,19 +55,30 @@ export default function TipBox({
   };
 
   return (
-    <div className="flex flex-col items-center space-y-3 w-full">
+    <div className="flex flex-col items-center space-y-4 w-full">
 
-      {/* Preset Buttons */}
+      {/* 🔴 Preset Buttons */}
       <div className="flex justify-center gap-3">
-        {presetAmounts.map((amt) => (
-          <button
-            key={amt}
-            onClick={() => setAmount(String(amt))}
-            className="bg-slate-200 px-3 py-1 rounded text-sm hover:bg-slate-300"
-          >
-            R{amt}
-          </button>
-        ))}
+        {presetAmounts.map((amt) => {
+          const isSelected = amount === String(amt);
+
+          return (
+            <button
+              key={amt}
+              onClick={() => setAmount(String(amt))}
+              className={`
+                px-4 py-2 rounded-lg text-sm font-semibold transition
+                ${
+                  isSelected
+                    ? "bg-red-700 text-white"
+                    : "bg-red-600 text-white hover:bg-red-700"
+                }
+              `}
+            >
+              R{amt}
+            </button>
+          );
+        })}
       </div>
 
       {/* Amount Input */}
@@ -82,14 +88,34 @@ export default function TipBox({
         placeholder="Enter ZAR amount"
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
-        className="border rounded px-3 py-2 text-center w-40"
+        className="
+          bg-[#0f172a]
+          border border-slate-600
+          rounded-lg
+          px-4 py-2
+          text-center
+          w-44
+          text-white
+          focus:outline-none
+          focus:border-blue-400
+        "
       />
 
-      {/* Tip Button */}
+      {/* 🔴 Tip Button */}
       <button
         onClick={handleTip}
         disabled={loading}
-        className="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700 disabled:opacity-50"
+        className="
+          bg-red-600
+          text-white
+          px-8
+          py-3
+          rounded-lg
+          font-semibold
+          hover:bg-red-700
+          transition
+          disabled:opacity-50
+        "
       >
         {loading ? "Processing..." : "Tip Now"}
       </button>

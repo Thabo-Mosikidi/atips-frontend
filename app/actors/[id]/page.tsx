@@ -1,6 +1,6 @@
 /**
  * app/actors/[id]/page.tsx
- * Clean Stable Actor Profile
+ * Dark Themed Actor Profile
  */
 
 import { prisma } from "@/lib/prisma";
@@ -22,31 +22,31 @@ export default async function ActorProfile({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  // ✅ Required for Next.js 15
+  // Required for Next.js 15
   const { id } = await params;
 
   const actor = await getActor(id);
 
   if (!actor) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-slate-700">
+      <div className="min-h-screen flex items-center justify-center text-slate-400">
         Actor not found
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen py-14 px-6 flex justify-center">
+    <main className="py-14 px-6 flex justify-center">
       <div className="max-w-md w-full">
 
         <div
           className="
-            bg-white
+            bg-[#1e293b]
             rounded-xl
-            shadow-md
+            shadow-lg
             overflow-hidden
             transition-all duration-300
-            hover:shadow-xl
+            hover:shadow-2xl
             hover:-translate-y-2
           "
         >
@@ -64,11 +64,11 @@ export default async function ActorProfile({
           {/* CONTENT */}
           <div className="p-6 text-center space-y-4">
 
-            <h1 className="text-xl font-semibold text-slate-800">
+            <h1 className="text-xl font-semibold text-white">
               {actor.name}
             </h1>
 
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-400">
               {actor.bio}
             </p>
 
@@ -81,7 +81,7 @@ export default async function ActorProfile({
 
             <Link
               href="/"
-              className="inline-block text-sm font-semibold text-blue-600 hover:text-blue-800"
+              className="inline-block text-sm font-semibold text-blue-400 hover:text-blue-300"
             >
               ← Back to Homepage
             </Link>
