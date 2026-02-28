@@ -1,5 +1,21 @@
 "use client";
 
+/**
+ * app/actors/[id]/TipBox.tsx
+ *
+ * TipBox Component
+ * ------------------------------------------------------
+ * - Handles tipping logic
+ * - Supports preset amounts (R10, R15, R25)
+ * - Custom ZAR amount input
+ * - Initiates Stripe checkout session
+ *
+ * Design System:
+ * - Preset buttons: Neutral grey
+ * - Primary action (Tip Now): Red CTA
+ * - Corporate white input styling
+ */
+
 import { useState } from "react";
 
 export default function TipBox({
@@ -9,11 +25,28 @@ export default function TipBox({
   actorId: string;
   actorName: string;
 }) {
+  /**
+   * Component State
+   * -----------------------------------------
+   * amount  -> Selected/custom tip value
+   * loading -> Prevents double submission
+   */
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Preset selectable tip amounts
+   * These are quick-select options for users
+   */
   const presetAmounts = [10, 15, 25];
 
+  /**
+   * Handles tip submission
+   * -----------------------------------------
+   * - Validates minimum amount (R10)
+   * - Calls backend /api/checkout
+   * - Redirects to Stripe Checkout
+   */
   const handleTip = async () => {
     const numericAmount = Number(amount);
 
@@ -45,6 +78,11 @@ export default function TipBox({
         return;
       }
 
+      /**
+       * Redirect to Stripe Checkout
+       * -----------------------------------------
+       * Stripe returns hosted checkout URL
+       */
       window.location.href = data.url;
     } catch (err) {
       console.error("Checkout error:", err);
@@ -57,7 +95,12 @@ export default function TipBox({
   return (
     <div className="flex flex-col items-center space-y-4 w-full">
 
-      {/* 🔴 Preset Buttons */}
+      {/* =====================================================
+          PRESET AMOUNT BUTTONS
+          -----------------------------------------------------
+          - Neutral grey default state
+          - Red when selected (indicates active choice)
+      ====================================================== */}
       <div className="flex justify-center gap-3">
         {presetAmounts.map((amt) => {
           const isSelected = amount === String(amt);
@@ -70,8 +113,8 @@ export default function TipBox({
                 px-4 py-2 rounded-lg text-sm font-semibold transition
                 ${
                   isSelected
-                    ? "bg-red-700 text-white"
-                    : "bg-red-600 text-white hover:bg-red-700"
+                    ? "bg-red-600 text-white"
+                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
                 }
               `}
             >
@@ -81,7 +124,12 @@ export default function TipBox({
         })}
       </div>
 
-      {/* Amount Input */}
+      {/* =====================================================
+          CUSTOM AMOUNT INPUT
+          -----------------------------------------------------
+          - White corporate styling
+          - Clean focus ring
+      ====================================================== */}
       <input
         type="number"
         min="10"
@@ -89,19 +137,27 @@ export default function TipBox({
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
         className="
-          bg-[#0f172a]
-          border border-slate-600
+          bg-white
+          border border-gray-300
           rounded-lg
           px-4 py-2
           text-center
           w-44
-          text-white
+          text-gray-900
           focus:outline-none
-          focus:border-blue-400
+          focus:border-gray-500
+          focus:ring-1
+          focus:ring-gray-400
         "
       />
 
-      {/* 🔴 Tip Button */}
+      {/* =====================================================
+          PRIMARY TIP BUTTON (RED CTA)
+          -----------------------------------------------------
+          - Strong call-to-action color
+          - Clear visual hierarchy
+          - Consistent across homepage + profile
+      ====================================================== */}
       <button
         onClick={handleTip}
         disabled={loading}
