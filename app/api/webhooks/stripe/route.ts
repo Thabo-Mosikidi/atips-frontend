@@ -1,29 +1,28 @@
 /**
  * app/api/webhooks/stripe/route.ts
- * Purpose:
- * - Securely receive Stripe events
- * - Verify Stripe signature
- * - Save successful tips to database
+ *
+ * PRODUCTION-GRADE STRIPE WEBHOOK
+ * ------------------------------------------
+ * - Verifies Stripe signature
+ * - Prevents duplicate tip insertion
+ * - Saves tip securely
+ * - Increments actor total
+ * - Idempotent-safe
  */
 
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2024-06-20" as any,
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 export async function POST(req: Request) {
   const body = await req.text();
-  //const signature = headers().get("stripe-signature") as string;
   const signature = req.headers.get("stripe-signature") as string;
-
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET as string;
 
   let event: Stripe.Event;
 
   try {
-    // ✅ Verify event is truly from Stripe
     event = stripe.webhooks.constructEvent(
       body,
       signature,
@@ -31,34 +30,53 @@ export async function POST(req: Request) {
     );
   } catch (error: any) {
     console.error("Webhook signature verification failed:", error.message);
-    return new Response(`Webhook Error: ${error.message}`, {
-      status: 400,
-    });
+    return new Response("Invalid signature", { status: 400 });
   }
 
-  // ✅ Handle successful checkout
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
 
     const actorId = session.metadata?.actorId;
     const amount = session.amount_total; // in cents
+    const stripeSessionId = session.id;
 
-    if (!actorId || !amount) {
-      console.error("Missing actorId or amount in session metadata.");
+    if (!actorId || !amount || !stripeSessionId) {
       return new Response("Missing metadata", { status: 400 });
     }
 
     try {
+      // 🔒 Prevent duplicate tip entries
+      const existingTip = await prisma.tip.findUnique({
+        where: { stripeSessionId },
+      });
+
+      if (existingTip) {
+        console.log("Duplicate webhook ignored.");
+        return new Response("Already processed", { status: 200 });
+      }
+
+      // 💾 Save tip
       await prisma.tip.create({
         data: {
-          actorId: actorId,
-          amount: amount,
+          stripeSessionId,
+          actorId,
+          amount,
         },
       });
 
-      console.log("Tip saved successfully.");
-    } catch (dbError) {
-      console.error("Database error:", dbError);
+      // 📈 Increment actor total
+      await prisma.actor.update({
+        where: { id: actorId },
+        data: {
+          number: {
+            increment: amount,
+          },
+        },
+      });
+
+      console.log("Tip saved & actor total updated.");
+    } catch (error) {
+      console.error("Database error:", error);
       return new Response("Database error", { status: 500 });
     }
   }

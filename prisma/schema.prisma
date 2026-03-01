@@ -19,9 +19,10 @@ model Actor {
 }
 
 model Tip {
-  id        String   @id @default(uuid())
-  actorId   String
-  actor     Actor    @relation(fields: [actorId], references: [id])
-  amount    Int
-  createdAt DateTime @default(now())
+  id              String   @id @default(uuid())
+  stripeSessionId String   @unique
+  actorId         String
+  actor           Actor    @relation(fields: [actorId], references: [id])
+  amount          Int
+  createdAt       DateTime @default(now())
 }
