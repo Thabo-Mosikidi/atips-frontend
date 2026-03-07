@@ -20,7 +20,7 @@ model Actor {
 
 model Tip {
   id              String   @id @default(uuid())
-  stripeSessionId String   @unique
+  stripeSessionId String?   @unique
   actorId         String
   actor           Actor    @relation(fields: [actorId], references: [id])
   amount          Int
