@@ -63,7 +63,7 @@ export async function POST(req: Request) {
         /* --------------------------------------------------
            STEP 5: Prevent duplicate tips
         ---------------------------------------------------*/
-        const existingTip = await prisma.tip.findUnique({
+        const existingTip = await prisma.tip.findFirst({
           where: {
             paystackReference: reference,
           },
