@@ -19,18 +19,17 @@ model Actor {
 }
 
 model Tip {
-  id                 String   @id @default(uuid())
+  id                String   @id @default(uuid())
 
-  // Stripe (optional now)
-  stripeSessionId    String?  @unique
+  // Stripe (legacy)
+  stripeSessionId   String?  @unique
 
-  // Paystack transaction reference
-  paystackReference  String?  @unique
+  // Paystack reference
+  paystackReference String?  @unique
 
-  actorId            String
-  actor              Actor    @relation(fields: [actorId], references: [id])
+  actorId           String
+  actor             Actor    @relation(fields: [actorId], references: [id])
 
-  amount             Int
-
-  createdAt          DateTime @default(now())
+  amount            Int
+  createdAt         DateTime @default(now())
 }
