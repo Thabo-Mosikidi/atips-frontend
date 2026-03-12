@@ -8,7 +8,10 @@
  * - Handles tipping logic
  * - Supports preset amounts (R10, R15, R25)
  * - Custom ZAR amount input
- * - Initiates Stripe checkout session
+ * - Initiates payment checkout session
+ *
+ * Payment Provider:
+ * - Paystack (via backend /api/checkout)
  *
  * Design System:
  * - Preset buttons: Neutral grey
@@ -25,8 +28,9 @@ export default function TipBox({
   actorId: string;
   actorName: string;
 }) {
+
   /**
-   * Component State
+   * COMPONENT STATE
    * -----------------------------------------
    * amount  -> Selected/custom tip value
    * loading -> Prevents double submission
@@ -36,20 +40,21 @@ export default function TipBox({
 
   /**
    * Preset selectable tip amounts
-   * These are quick-select options for users
    */
   const presetAmounts = [10, 15, 25];
 
   /**
-   * Handles tip submission
+   * HANDLE TIP SUBMISSION
    * -----------------------------------------
-   * - Validates minimum amount (R10)
-   * - Calls backend /api/checkout
-   * - Redirects to Stripe Checkout
+   * 1️⃣ Validate amount
+   * 2️⃣ Call backend /api/checkout
+   * 3️⃣ Backend initializes Paystack transaction
+   * 4️⃣ Redirect user to Paystack checkout page
    */
   const handleTip = async () => {
     const numericAmount = Number(amount);
 
+    // Minimum tip validation
     if (!numericAmount || numericAmount < 10) {
       alert("Minimum tip amount is R10");
       return;
@@ -58,6 +63,10 @@ export default function TipBox({
     setLoading(true);
 
     try {
+
+      /**
+       * STEP 1: Call backend checkout endpoint
+       */
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: {
@@ -66,12 +75,15 @@ export default function TipBox({
         body: JSON.stringify({
           actorId,
           actorName,
-          amountCents: numericAmount * 100,
+          amountCents: Math.round(numericAmount * 100)
         }),
       });
 
       const data = await res.json();
 
+      /**
+       * STEP 2: Handle backend errors
+       */
       if (!res.ok) {
         alert(data.error || "Checkout failed");
         setLoading(false);
@@ -79,11 +91,11 @@ export default function TipBox({
       }
 
       /**
-       * Redirect to Stripe Checkout
-       * -----------------------------------------
-       * Stripe returns hosted checkout URL
+       * STEP 3: Redirect user to Paystack payment page
+       * Paystack returns authorization_url
        */
       window.location.href = data.url;
+
     } catch (err) {
       console.error("Checkout error:", err);
       alert("Payment failed");
@@ -97,12 +109,10 @@ export default function TipBox({
 
       {/* =====================================================
           PRESET AMOUNT BUTTONS
-          -----------------------------------------------------
-          - Neutral grey default state
-          - Red when selected (indicates active choice)
       ====================================================== */}
       <div className="flex justify-center gap-3">
         {presetAmounts.map((amt) => {
+
           const isSelected = amount === String(amt);
 
           return (
@@ -126,9 +136,6 @@ export default function TipBox({
 
       {/* =====================================================
           CUSTOM AMOUNT INPUT
-          -----------------------------------------------------
-          - White corporate styling
-          - Clean focus ring
       ====================================================== */}
       <input
         type="number"
@@ -152,11 +159,7 @@ export default function TipBox({
       />
 
       {/* =====================================================
-          PRIMARY TIP BUTTON (RED CTA)
-          -----------------------------------------------------
-          - Strong call-to-action color
-          - Clear visual hierarchy
-          - Consistent across homepage + profile
+          PRIMARY TIP BUTTON
       ====================================================== */}
       <button
         onClick={handleTip}

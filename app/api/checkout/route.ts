@@ -1,18 +1,16 @@
 /**
  * app/api/checkout/route.ts
- * Purpose: Create Stripe Checkout session safely
+ * Purpose: Initialize Paystack payment safely
  */
 
-import Stripe from "stripe";
 import { NextResponse } from "next/server";
 
-// 🔒 Ensure Stripe key exists
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error("STRIPE_SECRET_KEY is not set in .env.local");
+/* --------------------------------------------------
+   🔒 Ensure Paystack key exists
+---------------------------------------------------*/
+if (!process.env.PAYSTACK_SECRET_KEY) {
+  throw new Error("PAYSTACK_SECRET_KEY is not set in .env.local");
 }
-
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export async function POST(req: Request) {
   try {
@@ -34,7 +32,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Enforce minimum R10 (1000 cents)
+    // Minimum R10
     if (Number(amountCents) < 1000) {
       return NextResponse.json(
         { error: "Minimum tip amount is R10" },
@@ -50,41 +48,68 @@ export async function POST(req: Request) {
     }
 
     /* --------------------------------------------------
-       💳 CREATE STRIPE CHECKOUT SESSION
+       💳 INITIALIZE PAYSTACK TRANSACTION
     ---------------------------------------------------*/
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
-
-      metadata: {
-        actorId: actorId,
-      },
-
-      line_items: [
-        {
-          price_data: {
-            currency: "zar",
-            product_data: {
-              name: `Tip for ${actorName}`,
-            },
-            unit_amount: Number(amountCents),
-          },
-          quantity: 1,
+    const response = await fetch(
+      "https://api.paystack.co/transaction/initialize",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          "Content-Type": "application/json",
         },
-      ],
 
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?actor=${actorId}&amount=${Number(amountCents) / 100}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/actors/${actorId}`,
+        body: JSON.stringify({
+          email: "fan@atips.app", 
+          // Paystack requires an email (can later be real fan email)
+
+          amount: Number(amountCents), 
+          // Paystack also uses cents (kobo equivalent)
+
+          currency: "ZAR",
+
+          metadata: {
+          actorId: actorId,
+          actorName: actorName,
+          },
+
+          description: `Tip for ${actorName}`,
+
+          callback_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?actor=${actorId}&amount=${Number(amountCents) / 100}`,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    /* --------------------------------------------------
+       🔒 PAYSTACK ERROR HANDLING
+    ---------------------------------------------------*/
+
+    if (!data.status) {
+      console.error("Paystack Init Error:", data);
+
+      return NextResponse.json(
+        { error: "Paystack transaction initialization failed" },
+        { status: 500 }
+      );
+    }
+
+    /* --------------------------------------------------
+       🔁 RETURN CHECKOUT URL
+       Frontend will redirect user to this
+    ---------------------------------------------------*/
+
+    return NextResponse.json({
+      url: data.data.authorization_url,
     });
 
-    return NextResponse.json({ url: session.url });
-
   } catch (error: any) {
-    console.error("Stripe Checkout Error:", error);
+    console.error("Paystack Checkout Error:", error);
 
     return NextResponse.json(
-      { error: error.message || "Stripe session failed" },
+      { error: error.message || "Paystack session failed" },
       { status: 500 }
     );
   }
