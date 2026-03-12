@@ -21,10 +21,8 @@ model Actor {
 model Tip {
   id                String   @id @default(uuid())
 
-  // Stripe (legacy)
   stripeSessionId   String?  @unique
 
-  // Paystack reference
   paystackReference String?  @unique
 
   actorId           String
