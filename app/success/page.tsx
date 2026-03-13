@@ -3,9 +3,9 @@
  *
  * Success Page
  * ------------------------------------------------------
- * - Displays confirmation after successful Stripe payment
- * - Reads actor + amount from searchParams
- * - Provides navigation back to profile or homepage
+ * - Displays confirmation after successful Paystack payment
+ * - Reads actorId, actorName and amount from URL params
+ * - Allows navigation back to the actor profile
  * - Styled using corporate white theme
  */
 
@@ -14,16 +14,24 @@ import Link from "next/link";
 /**
  * SuccessPage Component
  * ------------------------------------------------------
- * - Server component
- * - Extracts actor + amount from URL search params
+ * Server Component (Next.js 15 compatible)
  */
 export default async function SuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ actor?: string; amount?: string }>;
+  searchParams: Promise<{
+    actorId?: string;
+    actorName?: string;
+    amount?: string;
+  }>;
 }) {
-  // Required for Next.js 15+
-  const { actor, amount } = await searchParams;
+
+  /* --------------------------------------------------
+     Extract parameters from the URL
+     Example URL:
+     /success?actorId=123&actorName=Nomzamo%20Mbatha&amount=25
+  ---------------------------------------------------*/
+  const { actorId, actorName, amount } = await searchParams;
 
   return (
     <main className="flex items-center justify-center px-6 py-14 bg-gray-50">
@@ -40,32 +48,41 @@ export default async function SuccessPage({
           space-y-6
         "
       >
-        {/* =====================================
+
+        {/* -------------------------------------
             Success Heading
-        ====================================== */}
+        -------------------------------------- */}
         <h1 className="text-2xl font-semibold text-gray-900">
           Thank you 🎉
         </h1>
 
-        {/* =====================================
+        {/* -------------------------------------
             Confirmation Message
-        ====================================== */}
+            Shows actor name if available
+        -------------------------------------- */}
         <p className="text-gray-600">
           Your tip of{" "}
           <span className="font-semibold text-gray-900">
             {amount} ZAR
           </span>{" "}
+          {actorName && (
+            <>
+              for{" "}
+              <span className="font-semibold text-gray-900">
+                {actorName}
+              </span>
+            </>
+          )}{" "}
           was successful.
         </p>
 
-        {/* =====================================
+        {/* -------------------------------------
             Back to Profile Button
-            - Secondary navigation
-            - Dark neutral styling
-        ====================================== */}
-        {actor && (
+            Uses actorId for routing
+        -------------------------------------- */}
+        {actorId && (
           <Link
-            href={`/actors/${actor}`}
+            href={`/actors/${actorId}`}
             className="
               block
               bg-gray-900
@@ -81,11 +98,9 @@ export default async function SuccessPage({
           </Link>
         )}
 
-        {/* =====================================
+        {/* -------------------------------------
             Back to Homepage Button
-            - Primary CTA styling (RED)
-            - Matches Tip Now button branding
-        ====================================== */}
+        -------------------------------------- */}
         <Link
           href="/"
           className="
@@ -101,6 +116,7 @@ export default async function SuccessPage({
         >
           Back to homepage
         </Link>
+
       </div>
     </main>
   );

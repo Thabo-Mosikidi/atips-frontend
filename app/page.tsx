@@ -145,15 +145,15 @@ export default async function HomePage({
             <div
               key={actor.id}
               className="
-                bg-white
-                rounded-xl
-                shadow-md
-                border border-gray-200
-                overflow-hidden
-                transition-all duration-300
-                hover:shadow-lg
-                hover:-translate-y-1
-              "
+                    bg-white
+                    rounded-xl
+                    shadow-md
+                    border border-gray-200
+                    overflow-hidden
+                    transition-transform duration-200
+                    hover:shadow-lg
+                    hover:-translate-y-1
+                  "
             >
 
               {/* =====================================
@@ -165,7 +165,7 @@ export default async function HomePage({
                   src={actor.imageUrl}
                   alt={actor.name}
                   fill
-                  className="object-cover object-[50%_18%] transition-transform duration-500 hover:scale-105"
+                  className="object-cover object-[50%_18%] transition-transform duration-300 hover:scale-[1.03]"
                 />
 
               </div>

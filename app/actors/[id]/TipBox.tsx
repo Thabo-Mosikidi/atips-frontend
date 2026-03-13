@@ -1,25 +1,14 @@
 "use client";
 
 /**
- * app/actors/[id]/TipBox.tsx
- *
  * TipBox Component
- * ------------------------------------------------------
- * - Handles tipping logic
- * - Supports preset amounts (R10, R15, R25)
- * - Custom ZAR amount input
- * - Initiates payment checkout session
- *
- * Payment Provider:
- * - Paystack (via backend /api/checkout)
- *
- * Design System:
- * - Preset buttons: Neutral grey
- * - Primary action (Tip Now): Red CTA
- * - Corporate white input styling
+ * -----------------------------------------
+ * Handles tipping UI + payment redirect
+ * Modal uses React Portal to avoid flicker
  */
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 
 export default function TipBox({
   actorId,
@@ -28,45 +17,43 @@ export default function TipBox({
   actorId: string;
   actorName: string;
 }) {
-
-  /**
-   * COMPONENT STATE
-   * -----------------------------------------
-   * amount  -> Selected/custom tip value
-   * loading -> Prevents double submission
-   */
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  /**
-   * Preset selectable tip amounts
-   */
   const presetAmounts = [10, 15, 25];
 
   /**
-   * HANDLE TIP SUBMISSION
-   * -----------------------------------------
-   * 1️⃣ Validate amount
-   * 2️⃣ Call backend /api/checkout
-   * 3️⃣ Backend initializes Paystack transaction
-   * 4️⃣ Redirect user to Paystack checkout page
+   * Open confirmation modal
    */
-  const handleTip = async () => {
+  const openConfirm = () => {
     const numericAmount = Number(amount);
 
-    // Minimum tip validation
     if (!numericAmount || numericAmount < 10) {
       alert("Minimum tip amount is R10");
       return;
     }
 
+    setConfirmOpen(true);
+  };
+
+  /**
+   * Close modal
+   */
+  const closeConfirm = () => {
+    setConfirmOpen(false);
+  };
+
+  /**
+   * Start payment
+   */
+  const startPayment = async () => {
+    const numericAmount = Number(amount);
+
     setLoading(true);
+    setConfirmOpen(false);
 
     try {
-
-      /**
-       * STEP 1: Call backend checkout endpoint
-       */
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: {
@@ -75,29 +62,21 @@ export default function TipBox({
         body: JSON.stringify({
           actorId,
           actorName,
-          amountCents: Math.round(numericAmount * 100)
+          amountCents: Math.round(numericAmount * 100),
         }),
       });
 
       const data = await res.json();
 
-      /**
-       * STEP 2: Handle backend errors
-       */
       if (!res.ok) {
         alert(data.error || "Checkout failed");
         setLoading(false);
         return;
       }
 
-      /**
-       * STEP 3: Redirect user to Paystack payment page
-       * Paystack returns authorization_url
-       */
       window.location.href = data.url;
-
     } catch (err) {
-      console.error("Checkout error:", err);
+      console.error(err);
       alert("Payment failed");
     }
 
@@ -105,80 +84,109 @@ export default function TipBox({
   };
 
   return (
-    <div className="flex flex-col items-center space-y-4 w-full">
+    <>
+      {/* ===============================
+         TIP BUTTON UI
+      =============================== */}
+      <div className="flex flex-col items-center space-y-4 w-full">
+        {/* Preset buttons */}
+        <div className="flex justify-center gap-3">
+          {presetAmounts.map((amt) => {
+            const selected = amount === String(amt);
 
-      {/* =====================================================
-          PRESET AMOUNT BUTTONS
-      ====================================================== */}
-      <div className="flex justify-center gap-3">
-        {presetAmounts.map((amt) => {
+            return (
+              <button
+                key={amt}
+                onClick={() => setAmount(String(amt))}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition
+                  ${
+                    selected
+                      ? "bg-red-600 text-white"
+                      : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                  }`}
+              >
+                R{amt}
+              </button>
+            );
+          })}
+        </div>
 
-          const isSelected = amount === String(amt);
+        {/* Custom amount */}
+        <input
+          type="number"
+          min="10"
+          placeholder="Enter ZAR amount"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          className="
+            bg-white border border-gray-300 rounded-lg
+            px-4 py-2 text-center w-44 text-gray-900
+            focus:outline-none focus:ring-1 focus:ring-gray-400
+          "
+        />
 
-          return (
-            <button
-              key={amt}
-              onClick={() => setAmount(String(amt))}
-              className={`
-                px-4 py-2 rounded-lg text-sm font-semibold transition
-                ${
-                  isSelected
-                    ? "bg-red-600 text-white"
-                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                }
-              `}
-            >
-              R{amt}
-            </button>
-          );
-        })}
+        {/* Tip button */}
+        <button
+          onClick={openConfirm}
+          disabled={loading}
+          className="
+            bg-red-600 text-white px-8 py-3 rounded-lg
+            font-semibold hover:bg-red-700 transition
+            disabled:opacity-50
+          "
+        >
+          {loading ? "Processing..." : "Tip Now"}
+        </button>
       </div>
 
-      {/* =====================================================
-          CUSTOM AMOUNT INPUT
-      ====================================================== */}
-      <input
-        type="number"
-        min="10"
-        placeholder="Enter ZAR amount"
-        value={amount}
-        onChange={(e) => setAmount(e.target.value)}
-        className="
-          bg-white
-          border border-gray-300
-          rounded-lg
-          px-4 py-2
-          text-center
-          w-44
-          text-gray-900
-          focus:outline-none
-          focus:border-gray-500
-          focus:ring-1
-          focus:ring-gray-400
-        "
-      />
+      {/* ===============================
+         MODAL (PORTAL)
+      =============================== */}
+      {confirmOpen &&
+        typeof window !== "undefined" &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+            {/* Overlay */}
+            <div
+              className="absolute inset-0 bg-black/60"
+              onClick={closeConfirm}
+            />
 
-      {/* =====================================================
-          PRIMARY TIP BUTTON
-      ====================================================== */}
-      <button
-        onClick={handleTip}
-        disabled={loading}
-        className="
-          bg-red-600
-          text-white
-          px-8
-          py-3
-          rounded-lg
-          font-semibold
-          hover:bg-red-700
-          transition
-          disabled:opacity-50
-        "
-      >
-        {loading ? "Processing..." : "Tip Now"}
-      </button>
+            {/* Modal */}
+            <div className="relative bg-white rounded-xl p-8 max-w-sm w-full text-center space-y-4 shadow-xl">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Confirm Tip
+              </h2>
 
-    </div>
+              <p className="text-gray-600">You are about to tip</p>
+
+              <p className="text-xl font-semibold text-gray-900">
+                {actorName}
+              </p>
+
+              <p className="text-lg text-gray-700">
+                Amount: <span className="font-semibold">R{amount}</span>
+              </p>
+
+              <div className="flex justify-center gap-4 pt-4">
+                <button
+                  onClick={closeConfirm}
+                  className="px-5 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={startPayment}
+                  className="px-5 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                >
+                  Continue to Payment
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+    </>
   );
 }
