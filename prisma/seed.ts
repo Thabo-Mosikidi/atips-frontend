@@ -1,6 +1,6 @@
 /**
  * prisma/seed.ts
- * Purpose: Seed 15 actors into Supabase via Prisma.
+ * Seeds 15 actors with correct image numbering
  */
 
 import { PrismaClient } from "@prisma/client";
@@ -8,33 +8,38 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  // Clean existing rows so reseeding is consistent
+
+  // Remove existing actors
   await prisma.actor.deleteMany();
 
-  // Create 15 actors
   const actors = Array.from({ length: 15 }).map((_, i) => {
+
     const n = i + 1;
+
     return {
-      id: crypto.randomUUID(), // text id in your schema
+      id: crypto.randomUUID(),
       name: `Actor ${n}`,
-      bio: "Professional actor bio.",
-      imageUrl: `/images/actor${i}.jpg`,
-      // Keep email nullable if your schema allows null; otherwise provide unique
-      email: `actor${n}@atips.dev`,
-      createdAt: new Date(),
+      role: "Actor",
+      bio: "This is a professional actor biography that appears on the actor profile page.",
+      imageUrl: `/images/actor${n}.jpg`,   // FIXED HERE
+      number: n
     };
+
   });
 
-  await prisma.actor.createMany({ data: actors });
+  await prisma.actor.createMany({
+    data: actors
+  });
 
   console.log("✅ Seeded 15 actors successfully");
+
 }
 
 main()
-  .catch((e) => {
-    console.error("❌ Seed failed:", e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+.catch((e) => {
+  console.error("❌ Seed failed:", e);
+  process.exit(1);
+})
+.finally(async () => {
+  await prisma.$disconnect();
+});

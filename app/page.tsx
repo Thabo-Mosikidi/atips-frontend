@@ -90,26 +90,24 @@ export default async function HomePage({
 
 
   return (
-    <main className="py-14 px-6 bg-gray-50">
+
+  <main className="py-8 px-6 bg-gray-50">
+
+    {/* =========================================
+        STICKY DIRECTORY + SEARCH SECTION
+    ========================================== */}
+    
+      <div className="sticky top-0 z-30 bg-gray-50 pb-6 border-b border-gray-200">
+
       <div className="max-w-7xl mx-auto">
 
-
-        {/* =========================================
-            PAGE TITLE
-        ========================================== */}
-        <h1 className="text-3xl font-semibold text-center mb-6 text-gray-900">
+        {/* PAGE TITLE */}
+        <h1 className="text-3xl font-semibold text-center mb-2 text-gray-900">
           A.TIPS Actors Directory
         </h1>
 
-
-
-        {/* =========================================
-            SEARCH BAR
-            ------------------------------------------------
-            Submits search query to:
-            /?search=actorName
-        ========================================== */}
-        <form method="GET" className="flex justify-center mb-10">
+        {/* SEARCH BAR */}
+        <form method="GET" className="flex justify-center gap-3">
 
           <input
             type="text"
@@ -131,101 +129,104 @@ export default async function HomePage({
             "
           />
 
+          {/* Reset button */}
+          <Link
+            href="/"
+            className="px-4 py-3 bg-gray-200 rounded-lg text-sm hover:bg-gray-300"
+          >
+            Reset
+          </Link>
+
         </form>
 
+      </div>
+
+    </div>
 
 
-        {/* =========================================
-            ACTOR GRID
-        ========================================== */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-8">
 
-          {actors.map((actor) => (
+    {/* =========================================
+        ACTOR GRID
+    ========================================== */}
+    <div className="max-w-7xl mx-auto mt-8">
 
-            <div
-              key={actor.id}
-              className="
-                    bg-white
-                    rounded-xl
-                    shadow-md
-                    border border-gray-200
-                    overflow-hidden
-                    transition-transform duration-200
-                    hover:shadow-lg
-                    hover:-translate-y-1
-                  "
-            >
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-8">
 
-              {/* =====================================
-                  ACTOR IMAGE
-              ====================================== */}
-              <div className="relative w-full h-56 overflow-hidden">
+        {actors.map((actor) => (
 
-                <Image
-                  src={actor.imageUrl}
-                  alt={actor.name}
-                  fill
-                  className="object-cover object-[50%_18%] transition-transform duration-300 hover:scale-[1.03]"
+          <div
+            key={actor.id}
+            className="
+              bg-white
+              rounded-xl
+              shadow-md
+              border border-gray-200
+              overflow-hidden
+              transition-transform duration-200
+              hover:shadow-lg
+              hover:-translate-y-1
+            "
+          >
+
+            {/* ACTOR IMAGE */}
+            <div className="relative w-full h-56 overflow-hidden">
+
+              <Image
+                src={actor.imageUrl}
+                alt={actor.name}
+                fill
+                className="object-cover object-[50%_18%] transition-transform duration-300 hover:scale-[1.03]"
+              />
+
+            </div>
+
+
+            {/* CARD CONTENT */}
+            <div className="p-6 text-center space-y-4">
+
+              {/* Actor Name + Bio */}
+              <div>
+
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {actor.name}
+                </h2>
+
+                <p className="text-sm text-gray-600 mt-1">
+                  {actor.bio}
+                </p>
+
+              </div>
+
+
+              {/* TIP COMPONENT */}
+              <div className="flex justify-center">
+
+                <TipBox
+                  actorId={actor.id}
+                  actorName={actor.name}
                 />
 
               </div>
 
 
+              {/* PROFILE LINK */}
+              <Link
+                href={`/actors/${actor.id}`}
+                className="inline-block text-sm font-semibold text-blue-600 hover:text-blue-700 transition"
+              >
+                View Full Profile →
+              </Link>
 
-              {/* =====================================
-                  CARD CONTENT
-              ====================================== */}
-              <div className="p-6 text-center space-y-4">
-
-
-                {/* Actor Name + Bio */}
-                <div>
-
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    {actor.name}
-                  </h2>
-
-                  <p className="text-sm text-gray-600 mt-1">
-                    {actor.bio}
-                  </p>
-
-                </div>
-
-
-
-                {/* =====================================
-                    TIP COMPONENT
-                ====================================== */}
-                <div className="flex justify-center">
-
-                  <TipBox
-                    actorId={actor.id}
-                    actorName={actor.name}
-                  />
-
-                </div>
-
-
-
-                {/* =====================================
-                    PROFILE LINK
-                ====================================== */}
-                <Link
-                  href={`/actors/${actor.id}`}
-                  className="inline-block text-sm font-semibold text-blue-600 hover:text-blue-700 transition"
-                >
-                  View Full Profile →
-                </Link>
-
-
-              </div>
             </div>
 
-          ))}
+          </div>
 
-        </div>
+        ))}
 
       </div>
-    </main>
-  );
+
+    </div>
+
+  </main>
+);
 }

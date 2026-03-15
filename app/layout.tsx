@@ -1,6 +1,6 @@
 /**
  * app/layout.tsx
- * 
+ *
  * Global Application Layout
  * ----------------------------------------
  * - Provides consistent Header + Footer
@@ -11,6 +11,7 @@
 
 import "./globals.css";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 /**
  * Global metadata used across the application.
@@ -25,9 +26,9 @@ export const metadata: Metadata = {
  * RootLayout
  * ----------------------------------------
  * Wraps every page in the app.
- * 
+ *
  * Structure:
- * - Header (branding + tagline)
+ * - Header (branding + navigation)
  * - Main content (dynamic pages)
  * - Footer (legal info)
  */
@@ -42,40 +43,46 @@ export default function RootLayout({
         
         {/* =========================================
             HEADER
-            -----------------------------------------
-            - Fixed branding section
-            - Clean corporate white theme
         ========================================== */}
         <header className="w-full bg-white border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
             
             {/* Logo / Brand Name */}
-            <h1 className="text-xl font-bold tracking-tight text-gray-900">
+            <Link
+              href="/"
+              className="text-xl font-bold tracking-tight text-gray-900 hover:opacity-80"
+            >
               A.TIPS
-            </h1>
+            </Link>
 
-            {/* Tagline */}
-            <p className="text-sm text-gray-500">
-              Support Your Favourite Actors
-            </p>
+            {/* Right Side Navigation */}
+            <div className="flex items-center gap-6">
+
+              {/* Home Button */}
+              <Link
+                href="/"
+                className="text-sm font-medium text-gray-700 hover:text-black"
+              >
+                Home
+              </Link>
+
+              {/* Tagline */}
+              <p className="text-sm text-gray-500">
+                Support Your Favourite Actors
+              </p>
+
+            </div>
+
           </div>
         </header>
 
         {/* =========================================
             MAIN CONTENT
-            -----------------------------------------
-            - Dynamic content rendered here
-            - Pages: Home, Profile, Success
         ========================================== */}
-        <main className="flex-1">
-          {children}
-        </main>
+        <main className="flex-1">{children}</main>
 
         {/* =========================================
             FOOTER
-            -----------------------------------------
-            - Legal / copyright section
-            - Minimal corporate styling
         ========================================== */}
         <footer className="bg-white border-t border-gray-200">
           <div className="max-w-7xl mx-auto px-6 py-6 text-center text-gray-500 text-sm">

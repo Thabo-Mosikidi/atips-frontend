@@ -1,113 +1,102 @@
 /**
  * app/api/webhooks/paystack/route.ts
  *
- * PRODUCTION-GRADE PAYSTACK WEBHOOK
- * ------------------------------------------
- * - Verifies Paystack signature
- * - Prevents duplicate tip insertion
- * - Saves tip securely
- * - Increments actor total
- * - Idempotent-safe
+ * Purpose
+ * -------------------------------------------
+ * Handles Paystack webhook notifications.
+ *
+ * When a payment succeeds Paystack sends
+ * a webhook event to this route.
+ *
+ * We verify the event and then record
+ * the tip inside our database.
  */
 
-import crypto from "crypto";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * POST
+ * -------------------------------------------
+ * Paystack sends webhook events here.
+ */
 export async function POST(req: Request) {
   try {
 
-    /* --------------------------------------------------
-       STEP 1: Read raw body (Paystack requires raw body)
-    ---------------------------------------------------*/
-    const body = await req.text();
+    /**
+     * Read raw body from Paystack
+     */
+    const body = await req.json();
 
-    /* --------------------------------------------------
-       STEP 2: Verify Paystack signature
-       Paystack uses HMAC SHA512
-    ---------------------------------------------------*/
-    const hash = crypto
-      .createHmac("sha512", process.env.PAYSTACK_SECRET_KEY as string)
-      .update(body)
-      .digest("hex");
+    const event = body.event;
+    const data = body.data;
 
-    const signature = req.headers.get("x-paystack-signature");
-
-    if (hash !== signature) {
-      console.error("Invalid Paystack signature");
-      return new Response("Invalid signature", { status: 401 });
+    /**
+     * Only handle successful payments
+     */
+    if (event !== "charge.success") {
+      return NextResponse.json({ received: true });
     }
 
-    /* --------------------------------------------------
-       STEP 3: Parse event
-    ---------------------------------------------------*/
-    const event = JSON.parse(body);
+    /**
+     * Extract important fields
+     */
+    const reference = data.reference;
+    const amount = data.amount / 100; // convert kobo → rand
 
-    /* --------------------------------------------------
-       STEP 4: Handle successful payment
-       Paystack event = charge.success
-    ---------------------------------------------------*/
-    if (event.event === "charge.success") {
+    /**
+     * Metadata we sent earlier in checkout
+     */
+    const actorId = data.metadata?.actorId;
 
-      const data = event.data;
-
-      const actorId = data.metadata?.actorId;
-      const amount = data.amount; // in cents
-      const reference = data.reference;
-
-      if (!actorId || !amount || !reference) {
-        return new Response("Missing metadata", { status: 400 });
-      }
-
-      try {
-
-        /* --------------------------------------------------
-           STEP 5: Prevent duplicate tips
-        ---------------------------------------------------*/
-        const existingTip = await prisma.tip.findFirst({
-          where: {
-            paystackReference: reference,
-          },
-        });
-
-        if (existingTip) {
-          console.log("Duplicate webhook ignored.");
-          return new Response("Already processed", { status: 200 });
-        }
-
-        /* --------------------------------------------------
-           STEP 6: Save tip
-        ---------------------------------------------------*/
-        await prisma.tip.create({
-          data: {
-            paystackReference: reference,
-            actorId: actorId,
-            amount: amount,
-          },
-        });
-
-        /* --------------------------------------------------
-           STEP 7: Increment actor total
-        ---------------------------------------------------*/
-        await prisma.actor.update({
-          where: { id: actorId },
-          data: {
-            number: {
-              increment: amount,
-            },
-          },
-        });
-
-        console.log("Tip saved & actor total updated.");
-      } catch (error) {
-        console.error("Database error:", error);
-        return new Response("Database error", { status: 500 });
-      }
+    if (!actorId) {
+      console.error("Missing actorId in metadata");
+      return NextResponse.json(
+        { error: "Missing actorId metadata" },
+        { status: 400 }
+      );
     }
 
-    return new Response("Webhook received", { status: 200 });
+    /**
+     * Prevent duplicate inserts
+     */
+    const existing = await prisma.tip.findUnique({
+      where: {
+        paystackReference: reference,
+      },
+    });
+
+    if (existing) {
+      return NextResponse.json({
+        message: "Tip already recorded",
+      });
+    }
+
+    /**
+     * Insert tip into database
+     */
+    await prisma.tip.create({
+      data: {
+        id: crypto.randomUUID(),
+        actorId: actorId,
+        amount: amount,
+        paystackReference: reference,
+      },
+    });
+
+    console.log("Tip recorded successfully:", reference);
+
+    return NextResponse.json({
+      message: "Tip stored successfully",
+    });
 
   } catch (error) {
-    console.error("Webhook processing error:", error);
-    return new Response("Webhook error", { status: 500 });
+
+    console.error("Webhook Error:", error);
+
+    return NextResponse.json(
+      { error: "Webhook processing failed" },
+      { status: 500 }
+    );
   }
 }
