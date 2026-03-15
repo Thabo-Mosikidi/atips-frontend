@@ -5,11 +5,21 @@
  * -------------------------------------------
  * Handles Paystack webhook notifications.
  *
- * When a payment succeeds Paystack sends
- * a webhook event to this route.
+ * Paystack sends events when a transaction
+ * status changes.
  *
- * We verify the event and then record
- * the tip inside our database.
+ * When a payment succeeds:
+ *   charge.success
+ *
+ * We then record the tip in our database.
+ *
+ * IMPORTANT
+ * -------------------------------------------
+ * We store the amount in CENTS (kobo)
+ * to avoid floating-point rounding errors.
+ *
+ * Example:
+ * 10.96 ZAR → 1096
  */
 
 import { NextResponse } from "next/server";
@@ -24,7 +34,7 @@ export async function POST(req: Request) {
   try {
 
     /**
-     * Read raw body from Paystack
+     * Read webhook payload
      */
     const body = await req.json();
 
@@ -32,25 +42,35 @@ export async function POST(req: Request) {
     const data = body.data;
 
     /**
-     * Only handle successful payments
+     * Only process successful payments
      */
     if (event !== "charge.success") {
       return NextResponse.json({ received: true });
     }
 
     /**
-     * Extract important fields
+     * Extract transaction reference
      */
     const reference = data.reference;
-    const amount = data.amount / 100; // convert kobo → rand
 
     /**
-     * Metadata we sent earlier in checkout
+     * IMPORTANT
+     * -------------------------------------------
+     * Paystack amount is already in kobo (cents)
+     *
+     * Example:
+     * 1096 = ZAR 10.96
+     */
+    const amount = data.amount;
+
+    /**
+     * Metadata from checkout initialization
      */
     const actorId = data.metadata?.actorId;
 
     if (!actorId) {
       console.error("Missing actorId in metadata");
+
       return NextResponse.json(
         { error: "Missing actorId metadata" },
         { status: 400 }
@@ -73,13 +93,18 @@ export async function POST(req: Request) {
     }
 
     /**
-     * Insert tip into database
+     * Store the tip
      */
     await prisma.tip.create({
       data: {
         id: crypto.randomUUID(),
         actorId: actorId,
+
+        /**
+         * Stored in cents
+         */
         amount: amount,
+
         paystackReference: reference,
       },
     });
