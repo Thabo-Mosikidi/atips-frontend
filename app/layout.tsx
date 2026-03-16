@@ -12,6 +12,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Analytics } from "@vercel/analytics/react";
 
 /**
  * Global metadata used across the application.
@@ -24,13 +25,6 @@ export const metadata: Metadata = {
 
 /**
  * RootLayout
- * ----------------------------------------
- * Wraps every page in the app.
- *
- * Structure:
- * - Header (branding + navigation)
- * - Main content (dynamic pages)
- * - Footer (legal info)
  */
 export default function RootLayout({
   children,
@@ -40,14 +34,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col bg-gray-50 text-gray-900">
-        
-        {/* =========================================
-            HEADER
-        ========================================== */}
+
+        {/* HEADER */}
         <header className="w-full bg-white border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-            
-            {/* Logo / Brand Name */}
+
             <Link
               href="/"
               className="text-xl font-bold tracking-tight text-gray-900 hover:opacity-80"
@@ -55,10 +46,7 @@ export default function RootLayout({
               A.TIPS
             </Link>
 
-            {/* Right Side Navigation */}
             <div className="flex items-center gap-6">
-
-              {/* Home Button */}
               <Link
                 href="/"
                 className="text-sm font-medium text-gray-700 hover:text-black"
@@ -66,29 +54,26 @@ export default function RootLayout({
                 Home
               </Link>
 
-              {/* Tagline */}
               <p className="text-sm text-gray-500">
                 Support Your Favourite Actors
               </p>
-
             </div>
 
           </div>
         </header>
 
-        {/* =========================================
-            MAIN CONTENT
-        ========================================== */}
+        {/* MAIN CONTENT */}
         <main className="flex-1">{children}</main>
 
-        {/* =========================================
-            FOOTER
-        ========================================== */}
+        {/* FOOTER */}
         <footer className="bg-white border-t border-gray-200">
           <div className="max-w-7xl mx-auto px-6 py-6 text-center text-gray-500 text-sm">
             © {new Date().getFullYear()} A.TIPS. All rights reserved.
           </div>
         </footer>
+
+        {/* VERCEL ANALYTICS */}
+        <Analytics />
 
       </body>
     </html>
