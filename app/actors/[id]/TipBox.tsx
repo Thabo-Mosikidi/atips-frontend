@@ -21,7 +21,8 @@ export default function TipBox({
   const [loading, setLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const presetAmounts = [10, 15, 25];
+  //const presetAmounts = [10, 15, 25];
+  const presetAmounts = [10, 25, 50];
 
   /**
    * Open confirmation modal
