@@ -173,7 +173,7 @@ const reference = `${safeActorName}_atips_${crypto.randomUUID().slice(0,8)}`;
         body: JSON.stringify({
 
           /* Paystack requires an email */
-          email: "fan@atips.app",
+          email: "fan@atips.co.za",
 
           /* Amount in cents */
           amount: amountCents,

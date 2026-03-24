@@ -1,14 +1,25 @@
 "use client";
 
 /**
- * TipBox Component
- * -----------------------------------------
- * Handles tipping UI + payment redirect
- * Modal uses React Portal to avoid flicker
+ * TipBox Component (PRODUCTION-READY)
+ * ---------------------------------------------------
+ * Handles:
+ * - Tip input + validation (min + max)
+ * - Payment initialization
+ * - Confirmation modal
+ * - Trust UI (secure payment badge)
  */
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
+
+/**
+ * BUSINESS RULES
+ * -----------------------------------------
+ * Central place for limits (easy to update)
+ */
+const MIN_AMOUNT = 10;      // Minimum tip (R10)
+const MAX_AMOUNT = 10000;   // Maximum tip (R10,000)
 
 export default function TipBox({
   actorId,
@@ -20,18 +31,28 @@ export default function TipBox({
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [error, setError] = useState("");
 
-  //const presetAmounts = [10, 15, 25];
   const presetAmounts = [10, 25, 50];
 
   /**
-   * Open confirmation modal
+   * Validate amount BEFORE opening modal
    */
   const openConfirm = () => {
     const numericAmount = Number(amount);
 
-    if (!numericAmount || numericAmount < 10) {
-      alert("Minimum tip amount is R10");
+    // Reset previous errors
+    setError("");
+
+    // Minimum validation
+    if (!numericAmount || numericAmount < MIN_AMOUNT) {
+      setError(`Minimum tip amount is R${MIN_AMOUNT}`);
+      return;
+    }
+
+    // Maximum validation
+    if (numericAmount > MAX_AMOUNT) {
+      setError(`Maximum tip amount is R${MAX_AMOUNT}`);
       return;
     }
 
@@ -46,7 +67,7 @@ export default function TipBox({
   };
 
   /**
-   * Start payment
+   * Start payment process
    */
   const startPayment = async () => {
     const numericAmount = Number(amount);
@@ -63,7 +84,7 @@ export default function TipBox({
         body: JSON.stringify({
           actorId,
           actorName,
-          amountCents: Math.round(numericAmount * 100),
+          amountCents: Math.round(numericAmount * 100), // convert to cents
         }),
       });
 
@@ -75,6 +96,7 @@ export default function TipBox({
         return;
       }
 
+      // Redirect to Paystack
       window.location.href = data.url;
     } catch (err) {
       console.error(err);
@@ -87,10 +109,11 @@ export default function TipBox({
   return (
     <>
       {/* ===============================
-         TIP BUTTON UI
+         TIP UI
       =============================== */}
       <div className="flex flex-col items-center space-y-4 w-full">
-        {/* Preset buttons */}
+
+        {/* Preset amounts */}
         <div className="flex justify-center gap-3">
           {presetAmounts.map((amt) => {
             const selected = amount === String(amt);
@@ -98,7 +121,10 @@ export default function TipBox({
             return (
               <button
                 key={amt}
-                onClick={() => setAmount(String(amt))}
+                onClick={() => {
+                  setAmount(String(amt));
+                  setError("");
+                }}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition
                   ${
                     selected
@@ -112,19 +138,30 @@ export default function TipBox({
           })}
         </div>
 
-        {/* Custom amount */}
+        {/* Custom input */}
         <input
           type="number"
-          min="10"
-          placeholder="Enter ZAR amount"
+          min={MIN_AMOUNT}
+          max={MAX_AMOUNT}
+          placeholder={`Enter amount (R${MIN_AMOUNT} - R${MAX_AMOUNT})`}
           value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+          onChange={(e) => {
+            setAmount(e.target.value);
+            setError(""); // clear error on typing
+          }}
           className="
             bg-white border border-gray-300 rounded-lg
             px-4 py-2 text-center w-44 text-gray-900
             focus:outline-none focus:ring-1 focus:ring-gray-400
           "
         />
+
+        {/* Error message */}
+        {error && (
+          <p className="text-sm text-red-600 font-medium">
+            {error}
+          </p>
+        )}
 
         {/* Tip button */}
         <button
@@ -138,15 +175,21 @@ export default function TipBox({
         >
           {loading ? "Processing..." : "Tip Now"}
         </button>
+
+        {/* 🔒 TRUST BADGE */}
+        <p className="text-xs text-gray-500 flex items-center gap-1">
+          🔒 Secure payment
+        </p>
       </div>
 
       {/* ===============================
-         MODAL (PORTAL)
+         MODAL
       =============================== */}
       {confirmOpen &&
         typeof window !== "undefined" &&
         createPortal(
           <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+
             {/* Overlay */}
             <div
               className="absolute inset-0 bg-black/60"
@@ -155,6 +198,7 @@ export default function TipBox({
 
             {/* Modal */}
             <div className="relative bg-white rounded-xl p-8 max-w-sm w-full text-center space-y-4 shadow-xl">
+
               <h2 className="text-lg font-semibold text-gray-900">
                 Confirm Tip
               </h2>
@@ -184,6 +228,7 @@ export default function TipBox({
                   Continue to Payment
                 </button>
               </div>
+
             </div>
           </div>,
           document.body
