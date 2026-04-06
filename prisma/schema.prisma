@@ -13,7 +13,7 @@ model Actor {
   name      String
   role      String?
 
-  bio       String        // keep old column temporarily
+  bio       String
   bioShort  String?
   bioFull   String?
 
@@ -25,15 +25,26 @@ model Actor {
   tips      Tip[]
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
 }
 
 model Tip {
-  id                 String   @id
+  id                 String   @id @default(uuid()) // ✅ FIXED
   amount             Int
   actorId            String
   createdAt          DateTime @default(now())
   paystackReference  String   @unique
 
+  /**
+   * Optional audit fields (VERY useful later)
+   */
+  currency           String   @default("ZAR")
+  status             String   @default("success")
+
   actor Actor @relation(fields: [actorId], references: [id])
+
+  @@index([actorId]) // ✅ performance
+  @@index([createdAt])
 }

@@ -1,5 +1,5 @@
 /**
- * app/layout.tsx (FINAL – FIXED LOGO + STRONG POSITIONING)
+ * app/layout.tsx (FINAL – FIXED LOGO + STRONG POSITIONING + SUPPORT EMAIL)
  */
 
 import "./globals.css";
@@ -67,7 +67,6 @@ export default function RootLayout({
               A Movement for Actors
             </h1>
 
-            {/* 🔥 REPOSITIONED COPY (NO DONATION LANGUAGE) */}
             <p className="text-sm md:text-base text-gray-300 leading-relaxed">
               A.TIPS is more than a platform. It is a movement that strengthens
               the creative economy by enabling audiences to directly reward
@@ -90,16 +89,30 @@ export default function RootLayout({
         {/* MAIN */}
         <main className="flex-1">{children}</main>
 
-        {/* FOOTER */}
+        {/* =========================================
+            FOOTER (UPDATED SAFELY)
+        ========================================== */}
         <footer className="bg-white border-t border-gray-200">
           <div className="max-w-7xl mx-auto px-6 py-6 text-center text-gray-500 text-sm space-y-1">
 
+            {/* Copyright */}
             <p>
               © {new Date().getFullYear()} A.TIPS™. All rights reserved.
             </p>
 
+            {/* Tagline */}
             <p className="text-xs text-gray-400">
               Empowering actors through direct audience value exchange.
+            </p>
+
+            {/* ✅ SUPPORT EMAIL (NEW — SAFE ADDITION) */}
+            <p className="text-xs text-gray-500">
+              <a
+                href="mailto:support@atips.co.za"
+                className="hover:underline"
+              >
+                support@atips.co.za
+              </a>
             </p>
 
           </div>
