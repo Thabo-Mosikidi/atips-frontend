@@ -1,15 +1,11 @@
 /**
  * app/layout.tsx
  *
- * FINAL VERSION – FAVICON FIXED + CLEAN BRANDING
- * ------------------------------------------------------------
- * What this includes:
- * - Forced favicon loading (fixes tab icon issue)
- * - Clean A.TIPS™ branding
- * - Logo + text alignment (tight + premium)
- * - Movement banner (unchanged)
- * - Footer with support email
- * - Fully commented for maintainability
+ * ROOT LAYOUT (PRODUCTION READY)
+ * --------------------------------------------------
+ * - Handles global structure (Header, Footer, Main)
+ * - Uses Next.js metadata system (SEO + favicon)
+ * - Clean, maintainable, no hacks
  */
 
 import "./globals.css";
@@ -19,20 +15,37 @@ import { Analytics } from "@vercel/analytics/react";
 
 /**
  * GLOBAL METADATA
- * ------------------------------------------------------------
- * Controls:
+ * --------------------------------------------------
+ * This controls:
  * - Browser tab title
  * - SEO description
+ * - Favicon (VERY IMPORTANT)
+ *
+ * NOTE:
+ * We are using Next.js native favicon handling.
+ * The file MUST exist at:
+ *
+ * 👉 /app/favicon.png
  */
 export const metadata: Metadata = {
   title: "A.TIPS",
   description: "Support your favorite actors",
+
+  /**
+   * FAVICON (CORRECT WAY)
+   * --------------------------------------------------
+   * Next.js automatically injects this into <head>
+   * No need to manually write <link rel="icon" />
+   */
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 /**
- * ROOT LAYOUT
- * ------------------------------------------------------------
- * Wraps the entire application
+ * ROOT LAYOUT COMPONENT
+ * --------------------------------------------------
+ * Wraps ALL pages in your app
  */
 export default function RootLayout({
   children,
@@ -41,16 +54,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      
-      {/* =========================================
-          FAVICON (FORCED – GUARANTEED TO WORK)
-          -----------------------------------------
-          Uses: /public/favicon.png
-      ========================================== */}
-      <head>
-        <link rel="icon" href="/favicon.png" />
-      </head>
-
       <body className="min-h-screen flex flex-col bg-gray-50 text-gray-900">
 
         {/* =========================================
@@ -59,24 +62,22 @@ export default function RootLayout({
         <header className="w-full bg-white border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
 
-            {/* =====================================
-                LOGO + BRAND (A.TIPS™)
-            ===================================== */}
+            {/* =========================================
+                LOGO + BRAND
+            ========================================== */}
             <Link
               href="/"
-              className="flex items-center gap-0 text-lg font-semibold hover:opacity-80"
+              className="flex items-center gap-1 text-lg font-semibold hover:opacity-80"
             >
-
-              {/* Logo */}
-              <img 
-                src="/favicon.png" 
+              {/* Logo Image */}
+              <img
+                src="/favicon.png"
                 alt="A.Tips Logo"
                 className="w-10 h-10 object-contain -mr-[2px]"
               />
 
               {/* Brand Text */}
               <span className="tracking-[-0.02em]">
-
                 <span className="text-gray-900">A</span>
                 <span className="text-gray-900">.</span>
 
@@ -85,14 +86,15 @@ export default function RootLayout({
                 <span className="text-gray-900">P</span>
                 <span className="text-red-600">S</span>
 
+                {/* Trademark */}
                 <span className="ml-[2px] text-[10px] align-top">™</span>
-
               </span>
             </Link>
 
-            {/* NAVIGATION */}
+            {/* =========================================
+                NAVIGATION
+            ========================================== */}
             <div className="flex items-center gap-6">
-
               <Link
                 href="/"
                 className="text-sm font-medium text-gray-700 hover:text-black"
@@ -103,9 +105,7 @@ export default function RootLayout({
               <p className="text-sm text-gray-500">
                 Support Your Favourite Actors
               </p>
-
             </div>
-
           </div>
         </header>
 
@@ -134,11 +134,12 @@ export default function RootLayout({
             <p className="text-xs text-gray-400">
               Every tip contributes to a stronger creative industry.
             </p>
-
           </div>
         </section>
 
-        {/* MAIN */}
+        {/* =========================================
+            MAIN CONTENT (DYNAMIC PAGES)
+        ========================================== */}
         <main className="flex-1">{children}</main>
 
         {/* =========================================
@@ -147,14 +148,17 @@ export default function RootLayout({
         <footer className="bg-white border-t border-gray-200">
           <div className="max-w-7xl mx-auto px-6 py-6 text-center text-gray-500 text-sm space-y-1">
 
+            {/* Copyright */}
             <p>
               © {new Date().getFullYear()} A.TIPS™. All rights reserved.
             </p>
 
+            {/* Tagline */}
             <p className="text-xs text-gray-400">
               Empowering actors through direct audience value exchange.
             </p>
 
+            {/* Support Email */}
             <p className="text-xs text-gray-500">
               <a
                 href="mailto:support@atips.co.za"
@@ -163,15 +167,15 @@ export default function RootLayout({
                 support@atips.co.za
               </a>
             </p>
-
           </div>
         </footer>
 
-        {/* Analytics */}
+        {/* =========================================
+            ANALYTICS (VERCEL)
+        ========================================== */}
         <Analytics />
 
       </body>
     </html>
   );
 }
-
