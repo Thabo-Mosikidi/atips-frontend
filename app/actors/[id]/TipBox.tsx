@@ -1,24 +1,24 @@
 "use client";
 
 /**
- * TipBox Component (PRODUCTION-READY)
+ * TipBox Component (FINAL - TV READY)
  * ---------------------------------------------------
  * Handles:
- * - Tip input + validation (min + max)
- * - Payment initialization
- * - Confirmation modal
- * - Trust UI (secure payment badge)
- * - ✅ LEGAL COMPLIANCE (Terms agreement BEFORE payment)
+ * ✅ Tip input + validation
+ * ✅ Secure backend call
+ * ✅ PayFast redirect
+ * ✅ Confirmation modal
+ * ✅ Legal compliance (Terms + Refund Policy)
+ * ✅ Production-ready UX
  */
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 
-/**
- * BUSINESS RULES
- * -----------------------------------------
- */
+/* --------------------------------------------------
+   BUSINESS RULES
+---------------------------------------------------*/
 const MIN_AMOUNT = 10;
 const MAX_AMOUNT = 10000;
 
@@ -36,9 +36,9 @@ export default function TipBox({
 
   const presetAmounts = [10, 25, 50];
 
-  /**
-   * Validate BEFORE opening modal
-   */
+  /* --------------------------------------------------
+     VALIDATE BEFORE OPENING MODAL
+  ---------------------------------------------------*/
   const openConfirm = () => {
     const numericAmount = Number(amount);
     setError("");
@@ -56,16 +56,16 @@ export default function TipBox({
     setConfirmOpen(true);
   };
 
-  /**
-   * Close modal
-   */
+  /* --------------------------------------------------
+     CLOSE MODAL
+  ---------------------------------------------------*/
   const closeConfirm = () => {
     setConfirmOpen(false);
   };
 
-  /**
-   * Start payment process
-   */
+  /* --------------------------------------------------
+     🚀 START PAYMENT (PAYFAST)
+  ---------------------------------------------------*/
   const startPayment = async () => {
     const numericAmount = Number(amount);
 
@@ -88,16 +88,20 @@ export default function TipBox({
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Checkout failed");
+        alert(data.error || "Payment failed. Please try again.");
         setLoading(false);
         return;
       }
 
-      // Redirect to payment provider
-      window.location.href = data.url;
+      /* --------------------------------------------------
+         🔴 CRITICAL: HARD REDIRECT (NO SPA)
+         This ensures PayFast works properly
+      ---------------------------------------------------*/
+      window.location.replace(data.url);
+
     } catch (err) {
-      console.error(err);
-      alert("Payment failed");
+      console.error("Payment error:", err);
+      alert("Something went wrong. Please try again.");
     }
 
     setLoading(false);
@@ -165,7 +169,7 @@ export default function TipBox({
 
         {/* Trust badge */}
         <p className="text-xs text-gray-500 flex items-center gap-1">
-          🔒 Secure payment
+          🔒 Secure payment powered by PayFast
         </p>
       </div>
 
@@ -200,7 +204,7 @@ export default function TipBox({
                 Amount: <span className="font-semibold">R{amount}</span>
               </p>
 
-              {/* ✅ LEGAL AGREEMENT (CRITICAL FOR PEACH) */}
+              {/* LEGAL */}
               <p className="text-xs text-gray-500 mt-2">
                 By continuing, you agree to our{" "}
                 <Link href="/terms" className="underline hover:text-gray-700">

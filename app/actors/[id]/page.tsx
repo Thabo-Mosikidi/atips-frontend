@@ -135,7 +135,7 @@ export default async function ActorProfile({
               href="/"
               className="inline-block text-sm font-semibold text-blue-400 hover:text-blue-300"
             >
-              ← Back to Homepage
+              ← Homepage
             </Link>
 
           </div>
