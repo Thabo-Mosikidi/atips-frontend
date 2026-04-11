@@ -154,10 +154,10 @@ export async function POST(req: Request) {
 
       cancel_url: `${baseUrl}/actors/${actorId}`,
 
-      notify_url: `${baseUrl}/api/webhooks/payfast`,
+      notify_url: `${baseUrl}/api/payfast/webhook`,
 
       name_first: "A.Tips User",
-      email_address: `fan_${Date.now()}@atips.co.za`,
+      //email_address: `fan_${Date.now()}@atips.co.za`,
 
       m_payment_id: reference,
       amount: amount,
