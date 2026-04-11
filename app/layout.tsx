@@ -1,11 +1,12 @@
 /**
  * app/layout.tsx
  *
- * ROOT LAYOUT (PRODUCTION READY)
+ * ROOT LAYOUT (FINAL – WITH LEGAL LINKS + FAVICON + CLEAN STRUCTURE)
  * --------------------------------------------------
  * - Handles global structure (Header, Footer, Main)
  * - Uses Next.js metadata system (SEO + favicon)
- * - Clean, maintainable, no hacks
+ * - Includes legal compliance links (Terms, Refund, Privacy)
+ * - Production-ready and maintainable
  */
 
 import "./globals.css";
@@ -16,27 +17,19 @@ import { Analytics } from "@vercel/analytics/react";
 /**
  * GLOBAL METADATA
  * --------------------------------------------------
- * This controls:
+ * Controls:
  * - Browser tab title
  * - SEO description
- * - Favicon (VERY IMPORTANT)
+ * - Favicon
  *
- * NOTE:
- * We are using Next.js native favicon handling.
- * The file MUST exist at:
- *
+ * IMPORTANT:
+ * Make sure this file exists:
  * 👉 /app/favicon.png
  */
 export const metadata: Metadata = {
   title: "A.TIPS",
   description: "Support your favorite actors",
 
-  /**
-   * FAVICON (CORRECT WAY)
-   * --------------------------------------------------
-   * Next.js automatically injects this into <head>
-   * No need to manually write <link rel="icon" />
-   */
   icons: {
     icon: "/favicon.png",
   },
@@ -138,7 +131,7 @@ export default function RootLayout({
         </section>
 
         {/* =========================================
-            MAIN CONTENT (DYNAMIC PAGES)
+            MAIN CONTENT
         ========================================== */}
         <main className="flex-1">{children}</main>
 
@@ -146,7 +139,7 @@ export default function RootLayout({
             FOOTER
         ========================================== */}
         <footer className="bg-white border-t border-gray-200">
-          <div className="max-w-7xl mx-auto px-6 py-6 text-center text-gray-500 text-sm space-y-1">
+          <div className="max-w-7xl mx-auto px-6 py-6 text-center text-gray-500 text-sm space-y-2">
 
             {/* Copyright */}
             <p>
@@ -167,11 +160,29 @@ export default function RootLayout({
                 support@atips.co.za
               </a>
             </p>
+
+            {/* =========================================
+                ✅ LEGAL LINKS (CRITICAL FOR PAYMENT APPROVAL)
+            ========================================== */}
+            <div className="flex justify-center gap-4 text-xs mt-2">
+              <Link href="/terms" className="hover:underline">
+                Terms
+              </Link>
+
+              <Link href="/refund-policy" className="hover:underline">
+                Refund Policy
+              </Link>
+
+              <Link href="/privacy" className="hover:underline">
+                Privacy
+              </Link>
+            </div>
+
           </div>
         </footer>
 
         {/* =========================================
-            ANALYTICS (VERCEL)
+            ANALYTICS
         ========================================== */}
         <Analytics />
 

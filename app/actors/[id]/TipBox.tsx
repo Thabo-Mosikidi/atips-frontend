@@ -8,18 +8,19 @@
  * - Payment initialization
  * - Confirmation modal
  * - Trust UI (secure payment badge)
+ * - ✅ LEGAL COMPLIANCE (Terms agreement BEFORE payment)
  */
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 
 /**
  * BUSINESS RULES
  * -----------------------------------------
- * Central place for limits (easy to update)
  */
-const MIN_AMOUNT = 10;      // Minimum tip (R10)
-const MAX_AMOUNT = 10000;   // Maximum tip (R10,000)
+const MIN_AMOUNT = 10;
+const MAX_AMOUNT = 10000;
 
 export default function TipBox({
   actorId,
@@ -36,21 +37,17 @@ export default function TipBox({
   const presetAmounts = [10, 25, 50];
 
   /**
-   * Validate amount BEFORE opening modal
+   * Validate BEFORE opening modal
    */
   const openConfirm = () => {
     const numericAmount = Number(amount);
-
-    // Reset previous errors
     setError("");
 
-    // Minimum validation
     if (!numericAmount || numericAmount < MIN_AMOUNT) {
       setError(`Minimum tip amount is R${MIN_AMOUNT}`);
       return;
     }
 
-    // Maximum validation
     if (numericAmount > MAX_AMOUNT) {
       setError(`Maximum tip amount is R${MAX_AMOUNT}`);
       return;
@@ -84,7 +81,7 @@ export default function TipBox({
         body: JSON.stringify({
           actorId,
           actorName,
-          amountCents: Math.round(numericAmount * 100), // convert to cents
+          amountCents: Math.round(numericAmount * 100),
         }),
       });
 
@@ -96,7 +93,7 @@ export default function TipBox({
         return;
       }
 
-      // Redirect to Paystack
+      // Redirect to payment provider
       window.location.href = data.url;
     } catch (err) {
       console.error(err);
@@ -147,43 +144,33 @@ export default function TipBox({
           value={amount}
           onChange={(e) => {
             setAmount(e.target.value);
-            setError(""); // clear error on typing
+            setError("");
           }}
-          className="
-            bg-white border border-gray-300 rounded-lg
-            px-4 py-2 text-center w-44 text-gray-900
-            focus:outline-none focus:ring-1 focus:ring-gray-400
-          "
+          className="bg-white border border-gray-300 rounded-lg px-4 py-2 text-center w-44 text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-400"
         />
 
-        {/* Error message */}
+        {/* Error */}
         {error && (
-          <p className="text-sm text-red-600 font-medium">
-            {error}
-          </p>
+          <p className="text-sm text-red-600 font-medium">{error}</p>
         )}
 
         {/* Tip button */}
         <button
           onClick={openConfirm}
           disabled={loading}
-          className="
-            bg-red-600 text-white px-8 py-3 rounded-lg
-            font-semibold hover:bg-red-700 transition
-            disabled:opacity-50
-          "
+          className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition disabled:opacity-50"
         >
           {loading ? "Processing..." : "Tip Now"}
         </button>
 
-        {/* 🔒 TRUST BADGE */}
+        {/* Trust badge */}
         <p className="text-xs text-gray-500 flex items-center gap-1">
           🔒 Secure payment
         </p>
       </div>
 
       {/* ===============================
-         MODAL
+         CONFIRM MODAL
       =============================== */}
       {confirmOpen &&
         typeof window !== "undefined" &&
@@ -211,6 +198,18 @@ export default function TipBox({
 
               <p className="text-lg text-gray-700">
                 Amount: <span className="font-semibold">R{amount}</span>
+              </p>
+
+              {/* ✅ LEGAL AGREEMENT (CRITICAL FOR PEACH) */}
+              <p className="text-xs text-gray-500 mt-2">
+                By continuing, you agree to our{" "}
+                <Link href="/terms" className="underline hover:text-gray-700">
+                  Terms
+                </Link>{" "}
+                and{" "}
+                <Link href="/refund-policy" className="underline hover:text-gray-700">
+                  Refund Policy
+                </Link>.
               </p>
 
               <div className="flex justify-center gap-4 pt-4">
