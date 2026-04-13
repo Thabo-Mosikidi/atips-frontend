@@ -31,20 +31,19 @@ model Actor {
 }
 
 model Tip {
-  id                 String   @id @default(uuid()) // ✅ FIXED
+  id                 String   @id @default(uuid())
   amount             Int
   actorId            String
   createdAt          DateTime @default(now())
-  paystackReference  String   @unique
 
-  /**
-   * Optional audit fields (VERY useful later)
-   */
+  paystackReference  String   @unique
+  readableReference  String?  // 👈 NEW FIELD
+
   currency           String   @default("ZAR")
   status             String   @default("success")
 
   actor Actor @relation(fields: [actorId], references: [id])
 
-  @@index([actorId]) // ✅ performance
+  @@index([actorId])
   @@index([createdAt])
 }

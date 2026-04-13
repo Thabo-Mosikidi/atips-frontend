@@ -1,10 +1,10 @@
 /**
- * PAYFAST WEBHOOK - TV READY & SECURE
+ * PAYFAST WEBHOOK - FINAL PRODUCTION (CLEAN REFERENCES)
  * --------------------------------------------------
- * - Handles PayFast notifications
- * - Verifies signature
- * - Prevents duplicates
- * - Stores tips safely
+ * ✅ RAW signature validation
+ * ✅ Correct UUID extraction
+ * ✅ Duplicate-safe
+ * ✅ Saves system + human reference
  */
 
 import { NextResponse } from "next/server";
@@ -12,32 +12,22 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 
 /* --------------------------------------------------
-   SIGNATURE VALIDATION
+   HELPER: CLEAN ACTOR NAME
 ---------------------------------------------------*/
-function generateSignature(data: Record<string, string>) {
-  const passphrase = process.env.PAYFAST_PASSPHRASE || "";
-
-  const sorted = Object.keys(data)
-    .filter((key) => key !== "signature")
-    .sort()
-    .map((key) => `${key}=${encodeURIComponent(data[key]).replace(/%20/g, "+")}`)
-    .join("&");
-
-  const stringToHash = passphrase
-    ? `${sorted}&passphrase=${encodeURIComponent(passphrase)}`
-    : sorted;
-
-  return crypto.createHash("md5").update(stringToHash).digest("hex");
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
 }
 
-/* --------------------------------------------------
-   POST
----------------------------------------------------*/
 export async function POST(req: Request) {
   try {
     /* ---------------- RAW BODY ---------------- */
     const raw = await req.text();
 
+    /* ---------------- PARSE ---------------- */
     const params = new URLSearchParams(raw);
 
     const data: Record<string, string> = {};
@@ -45,12 +35,27 @@ export async function POST(req: Request) {
       data[key] = value;
     });
 
-    /* ---------------- VERIFY SIGNATURE ---------------- */
-    const receivedSignature = data.signature;
-    const calculatedSignature = generateSignature(data);
+    console.log("📩 PayFast Webhook:", data);
 
-    if (receivedSignature !== calculatedSignature) {
-      console.error("Invalid PayFast signature");
+    /* ---------------- SIGNATURE ---------------- */
+    const passphrase = process.env.PAYFAST_PASSPHRASE || "";
+
+    const cleaned = raw
+      .split("&")
+      .filter((item) => !item.startsWith("signature="))
+      .join("&");
+
+    const stringToHash = passphrase
+      ? `${cleaned}&passphrase=${passphrase}`
+      : cleaned;
+
+    const calculatedSignature = crypto
+      .createHash("md5")
+      .update(stringToHash)
+      .digest("hex");
+
+    if (calculatedSignature !== data.signature) {
+      console.error("❌ Invalid signature");
 
       return NextResponse.json(
         { error: "Invalid signature" },
@@ -58,52 +63,74 @@ export async function POST(req: Request) {
       );
     }
 
-    /* ---------------- PAYMENT STATUS ---------------- */
+    /* ---------------- STATUS ---------------- */
     if (data.payment_status !== "COMPLETE") {
       return NextResponse.json({ received: true });
     }
 
-    /* ---------------- DATA EXTRACTION ---------------- */
-    const actorId = data.m_payment_id; // we stored actorId here
-    const amount = Math.round(Number(data.amount_gross) * 100); // convert to cents
-    const reference = data.pf_payment_id;
+    /* ---------------- EXTRACT ---------------- */
+    const mPaymentId = data.m_payment_id || "";
 
-    if (!actorId) {
+    const actorId = mPaymentId
+      .split("-")
+      .slice(0, 5)
+      .join("-");
+
+    const payfastId = data.pf_payment_id;
+
+    const actorName =
+      data.item_name?.replace("Tip for ", "") || "actor";
+
+    const amount = Math.round(
+      Number(data.amount_gross || "0") * 100
+    );
+
+    if (!actorId || !payfastId) {
       return NextResponse.json(
-        { error: "Missing actorId" },
+        { error: "Missing data" },
         { status: 400 }
       );
     }
 
-    /* ---------------- DUPLICATE PROTECTION ---------------- */
+    /* ---------------- DUPLICATE CHECK ---------------- */
     const existing = await prisma.tip.findUnique({
       where: {
-        paystackReference: reference, // reuse column (rename later if needed)
+        paystackReference: payfastId,
       },
     });
 
     if (existing) {
-      return NextResponse.json({
-        message: "Already processed",
-      });
+      console.log("⚠️ Duplicate ignored:", payfastId);
+      return NextResponse.json({ message: "Already processed" });
     }
 
-    /* ---------------- STORE TIP ---------------- */
+    /* ---------------- GENERATE CLEAN REFERENCE ---------------- */
+    const readableReference = `${slugify(actorName)}_atips_${payfastId}`;
+
+    /* ---------------- SAVE ---------------- */
     await prisma.tip.create({
       data: {
         id: crypto.randomUUID(),
         actorId,
         amount,
-        paystackReference: reference, // OK to reuse for now
+
+        // 🔥 SYSTEM (UNIQUE)
+        paystackReference: payfastId,
+
+        // 🔥 HUMAN FRIENDLY (YOUR FORMAT)
+        readableReference,
+
+        currency: "ZAR",
+        status: "success",
       },
     });
 
-    console.log("✅ PayFast tip recorded:", reference);
+    console.log("✅ Saved:", readableReference);
 
     return NextResponse.json({ success: true });
 
   } catch (error) {
-    console.error("Webhook Error:", error);
+    console.error("❌ Webhook Error:", error);
 
     return NextResponse.json(
       { error: "Webhook failed" },

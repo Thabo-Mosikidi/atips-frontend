@@ -1,21 +1,16 @@
 /**
  * app/success/page.tsx
  *
- * Success Page
+ * FINAL SUCCESS PAGE
  * ------------------------------------------------------
- * - Displays confirmation after successful Paystack payment
- * - Reads actorId, actorName and amount from URL params
- * - Allows navigation back to the actor profile
- * - Styled using corporate white theme
+ * ✅ Shows correct actor name
+ * ✅ Shows correct amount
+ * ✅ Works with PayFast redirect
+ * ✅ No dependency on webhook
  */
 
 import Link from "next/link";
 
-/**
- * SuccessPage Component
- * ------------------------------------------------------
- * Server Component (Next.js 15 compatible)
- */
 export default async function SuccessPage({
   searchParams,
 }: {
@@ -26,44 +21,22 @@ export default async function SuccessPage({
   }>;
 }) {
 
-  /* --------------------------------------------------
-     Extract parameters from the URL
-     Example URL:
-     /success?actorId=123&actorName=Nomzamo%20Mbatha&amount=25
-  ---------------------------------------------------*/
   const { actorId, actorName, amount } = await searchParams;
 
   return (
     <main className="flex items-center justify-center px-6 py-14 bg-gray-50">
-      <div
-        className="
-          bg-white
-          rounded-xl
-          shadow-md
-          border border-gray-200
-          p-10
-          text-center
-          max-w-md
-          w-full
-          space-y-6
-        "
-      >
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-10 text-center max-w-md w-full space-y-6">
 
-        {/* -------------------------------------
-            Success Heading
-        -------------------------------------- */}
+        {/* TITLE */}
         <h1 className="text-2xl font-semibold text-gray-900">
           Thank you 🎉
         </h1>
 
-        {/* -------------------------------------
-            Confirmation Message
-            Shows actor name if available
-        -------------------------------------- */}
+        {/* MESSAGE */}
         <p className="text-gray-600">
           Your tip of{" "}
           <span className="font-semibold text-gray-900">
-            {amount} ZAR
+            {amount || "--"} ZAR
           </span>{" "}
           {actorName && (
             <>
@@ -76,43 +49,20 @@ export default async function SuccessPage({
           was successful.
         </p>
 
-        {/* -------------------------------------
-            Back to Profile Button
-            Uses actorId for routing
-        -------------------------------------- */}
+        {/* BACK TO PROFILE */}
         {actorId && (
           <Link
             href={`/actors/${actorId}`}
-            className="
-              block
-              bg-gray-900
-              text-white
-              px-6
-              py-3
-              rounded-lg
-              hover:bg-black
-              transition
-            "
+            className="block bg-gray-900 text-white px-6 py-3 rounded-lg"
           >
             Back to profile
           </Link>
         )}
 
-        {/* -------------------------------------
-            Back to Homepage Button
-        -------------------------------------- */}
+        {/* BACK TO HOME */}
         <Link
           href="/"
-          className="
-            block
-            bg-red-600
-            text-white
-            px-6
-            py-3
-            rounded-lg
-            hover:bg-red-700
-            transition
-          "
+          className="block bg-red-600 text-white px-6 py-3 rounded-lg"
         >
           Back to homepage
         </Link>

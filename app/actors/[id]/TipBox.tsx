@@ -1,15 +1,12 @@
 "use client";
 
 /**
- * TipBox Component (FINAL - TV READY)
+ * TipBox Component (FINAL - PRODUCTION UI)
  * ---------------------------------------------------
- * Handles:
- * ✅ Tip input + validation
- * ✅ Secure backend call
- * ✅ PayFast redirect
- * ✅ Confirmation modal
- * ✅ Legal compliance (Terms + Refund Policy)
- * ✅ Production-ready UX
+ * ✅ Compact card layout
+ * ✅ Confirm modal (with legal links)
+ * ✅ PayFast ready
+ * ✅ Source-aware cancel redirect
  */
 
 import { useState } from "react";
@@ -37,34 +34,34 @@ export default function TipBox({
   const presetAmounts = [10, 25, 50];
 
   /* --------------------------------------------------
-     VALIDATE BEFORE OPENING MODAL
+     VALIDATION BEFORE MODAL
   ---------------------------------------------------*/
   const openConfirm = () => {
     const numericAmount = Number(amount);
     setError("");
 
+    if (!actorId || !actorName) {
+      setError("Actor information missing");
+      return;
+    }
+
     if (!numericAmount || numericAmount < MIN_AMOUNT) {
-      setError(`Minimum tip amount is R${MIN_AMOUNT}`);
+      setError(`Minimum tip is R${MIN_AMOUNT}`);
       return;
     }
 
     if (numericAmount > MAX_AMOUNT) {
-      setError(`Maximum tip amount is R${MAX_AMOUNT}`);
+      setError(`Maximum tip is R${MAX_AMOUNT}`);
       return;
     }
 
     setConfirmOpen(true);
   };
 
-  /* --------------------------------------------------
-     CLOSE MODAL
-  ---------------------------------------------------*/
-  const closeConfirm = () => {
-    setConfirmOpen(false);
-  };
+  const closeConfirm = () => setConfirmOpen(false);
 
   /* --------------------------------------------------
-     🚀 START PAYMENT (PAYFAST)
+     START PAYMENT
   ---------------------------------------------------*/
   const startPayment = async () => {
     const numericAmount = Number(amount);
@@ -81,27 +78,24 @@ export default function TipBox({
         body: JSON.stringify({
           actorId,
           actorName,
-          amountCents: Math.round(numericAmount * 100),
+          amount: numericAmount,
+          source: window.location.pathname + window.location.search, // 🔥 FULL STATE
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Payment failed. Please try again.");
+        alert(data.error || "Payment failed");
         setLoading(false);
         return;
       }
 
-      /* --------------------------------------------------
-         🔴 CRITICAL: HARD REDIRECT (NO SPA)
-         This ensures PayFast works properly
-      ---------------------------------------------------*/
-      window.location.replace(data.url);
+      window.location.href = data.url;
 
     } catch (err) {
-      console.error("Payment error:", err);
-      alert("Something went wrong. Please try again.");
+      console.error(err);
+      alert("Something went wrong");
     }
 
     setLoading(false);
@@ -110,65 +104,62 @@ export default function TipBox({
   return (
     <>
       {/* ===============================
-         TIP UI
+         MAIN UI
       =============================== */}
-      <div className="flex flex-col items-center space-y-4 w-full">
+      <div className="flex flex-col items-center space-y-2 w-full">
 
-        {/* Preset amounts */}
-        <div className="flex justify-center gap-3">
-          {presetAmounts.map((amt) => {
-            const selected = amount === String(amt);
-
-            return (
-              <button
-                key={amt}
-                onClick={() => {
-                  setAmount(String(amt));
-                  setError("");
-                }}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold transition
-                  ${
-                    selected
-                      ? "bg-red-600 text-white"
-                      : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                  }`}
-              >
-                R{amt}
-              </button>
-            );
-          })}
+        {/* PRESET BUTTONS */}
+        <div className="flex gap-2">
+          {presetAmounts.map((amt) => (
+            <button
+              key={amt}
+              onClick={() => {
+                setAmount(String(amt));
+                setError("");
+              }}
+              className={`px-3 py-1 text-sm rounded-md font-medium ${
+                amount === String(amt)
+                  ? "bg-red-600 text-white"
+                  : "bg-gray-200 text-gray-700"
+              }`}
+            >
+              R{amt}
+            </button>
+          ))}
         </div>
 
-        {/* Custom input */}
+        {/* INPUT */}
         <input
           type="number"
-          min={MIN_AMOUNT}
-          max={MAX_AMOUNT}
-          placeholder={`Enter amount (R${MIN_AMOUNT} - R${MAX_AMOUNT})`}
           value={amount}
           onChange={(e) => {
             setAmount(e.target.value);
             setError("");
           }}
-          className="bg-white border border-gray-300 rounded-lg px-4 py-2 text-center w-44 text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-400"
+          placeholder="Enter amount (R10)"
+          className="w-full px-2 py-1 text-sm rounded-md text-center
+                     border border-gray-400
+                     bg-white text-gray-900
+                     placeholder-gray-500
+                     focus:outline-none focus:ring-2 focus:ring-red-500"
         />
 
-        {/* Error */}
+        {/* ERROR */}
         {error && (
-          <p className="text-sm text-red-600 font-medium">{error}</p>
+          <p className="text-red-500 text-xs text-center">{error}</p>
         )}
 
-        {/* Tip button */}
+        {/* BUTTON */}
         <button
           onClick={openConfirm}
           disabled={loading}
-          className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition disabled:opacity-50"
+          className="w-full bg-red-600 hover:bg-red-700 text-white py-2 text-sm rounded-md font-medium"
         >
           {loading ? "Processing..." : "Tip Now"}
         </button>
 
-        {/* Trust badge */}
-        <p className="text-xs text-gray-500 flex items-center gap-1">
+        {/* TRUST TEXT */}
+        <p className="text-[10px] text-gray-500 text-center">
           🔒 Secure payment powered by PayFast
         </p>
       </div>
@@ -188,45 +179,48 @@ export default function TipBox({
             />
 
             {/* Modal */}
-            <div className="relative bg-white rounded-xl p-8 max-w-sm w-full text-center space-y-4 shadow-xl">
+            <div className="relative bg-white rounded-xl p-6 w-80 text-center space-y-4 shadow-xl">
 
               <h2 className="text-lg font-semibold text-gray-900">
                 Confirm Tip
               </h2>
 
-              <p className="text-gray-600">You are about to tip</p>
+              <p className="text-sm text-gray-600">
+                You are about to tip
+              </p>
 
-              <p className="text-xl font-semibold text-gray-900">
+              <p className="text-base font-semibold text-gray-900">
                 {actorName}
               </p>
 
-              <p className="text-lg text-gray-700">
+              <p className="text-sm text-gray-700">
                 Amount: <span className="font-semibold">R{amount}</span>
               </p>
 
-              {/* LEGAL */}
-              <p className="text-xs text-gray-500 mt-2">
+              {/* LEGAL TEXT */}
+              <p className="text-[11px] text-gray-500 leading-relaxed">
                 By continuing, you agree to our{" "}
-                <Link href="/terms" className="underline hover:text-gray-700">
+                <Link href="/terms" className="underline">
                   Terms
                 </Link>{" "}
                 and{" "}
-                <Link href="/refund-policy" className="underline hover:text-gray-700">
+                <Link href="/refund-policy" className="underline">
                   Refund Policy
                 </Link>.
               </p>
 
-              <div className="flex justify-center gap-4 pt-4">
+              {/* ACTION BUTTONS */}
+              <div className="flex justify-center gap-3 pt-2">
                 <button
                   onClick={closeConfirm}
-                  className="px-5 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+                  className="px-4 py-1.5 text-sm rounded-md bg-gray-200 hover:bg-gray-300"
                 >
                   Cancel
                 </button>
 
                 <button
                   onClick={startPayment}
-                  className="px-5 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                  className="px-4 py-1.5 text-sm rounded-md bg-red-600 text-white hover:bg-red-700"
                 >
                   Continue to Payment
                 </button>
