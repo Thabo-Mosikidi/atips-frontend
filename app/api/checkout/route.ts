@@ -1,17 +1,18 @@
 /**
- * PayFast Checkout API (FINAL - STABLE + SUCCESS FIX)
+ * PayFast Checkout API (FINAL - PRODUCTION READY)
  * ---------------------------------------------------
- * ✅ No signature mismatch
- * ✅ Passes actorName + amount to success page
- * ✅ Keeps cancel returning correctly
- * ✅ Works with existing UI (no styling changes)
+ * ✅ Live / Sandbox switching
+ * ✅ Correct signature generation
+ * ✅ Passphrase support
+ * ✅ Clean redirect handling
+ * ✅ Debug logs included
  */
 
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 
 /* --------------------------------------------------
-   PAYFAST ENCODE
+   PAYFAST ENCODE (IMPORTANT)
 ---------------------------------------------------*/
 function encodePF(value: string) {
   return encodeURIComponent(value).replace(/%20/g, "+");
@@ -42,25 +43,25 @@ export async function POST(req: Request) {
     const merchant_id = process.env.PAYFAST_MERCHANT_ID!;
     const merchant_key = process.env.PAYFAST_MERCHANT_KEY!;
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL!;
+    const passphrase = process.env.PAYFAST_PASSPHRASE || "";
 
-    /* 🔥 DO NOT CHANGE STRUCTURE */
+    const isLive = process.env.PAYFAST_LIVE === "true";
+
+    /* ---------------- PAYMENT ID ---------------- */
     const m_payment_id = `${actorId}-${Date.now()}`;
 
-    /* ---------------- REDIRECTS ---------------- */
+    /* ---------------- REDIRECT URLs ---------------- */
 
-    // ✅ SUCCESS PAGE (SAFE QUERY PARAMS)
     const return_url = `${baseUrl}/success?actorId=${encodeURIComponent(
       actorId
     )}&actorName=${encodeURIComponent(actorName)}&amount=${encodeURIComponent(
       String(amount)
     )}`;
 
-    // ✅ CANCEL RETURNS TO ORIGINAL PAGE
     const cancel_url = source
       ? `${baseUrl}${source}`
       : `${baseUrl}/`;
 
-    // ✅ WEBHOOK
     const notify_url = `${baseUrl}/api/webhooks/payfast`;
 
     /* ---------------- PAYMENT DATA ---------------- */
@@ -85,8 +86,6 @@ export async function POST(req: Request) {
       .map((key) => `${key}=${encodePF(paymentData[key])}`)
       .join("&");
 
-    const passphrase = process.env.PAYFAST_PASSPHRASE || "";
-
     const signatureBase = passphrase
       ? `${query}&passphrase=${encodePF(passphrase)}`
       : query;
@@ -97,17 +96,21 @@ export async function POST(req: Request) {
       .digest("hex");
 
     /* ---------------- PAYFAST URL ---------------- */
-    const url =
-      process.env.PAYFAST_LIVE === "true"
-        ? "https://www.payfast.co.za/eng/process"
-        : "https://sandbox.payfast.co.za/eng/process";
+    const PAYFAST_URL = isLive
+      ? "https://www.payfast.co.za/eng/process"
+      : "https://sandbox.payfast.co.za/eng/process";
 
-    const redirectUrl = `${url}?${query}&signature=${signature}`;
+    /* ---------------- DEBUG LOGS ---------------- */
+    console.log("🚀 PAYFAST MODE:", isLive ? "LIVE" : "SANDBOX");
+    console.log("🔗 PAYFAST URL:", PAYFAST_URL);
+
+    /* ---------------- FINAL REDIRECT ---------------- */
+    const redirectUrl = `${PAYFAST_URL}?${query}&signature=${signature}`;
 
     return NextResponse.json({ url: redirectUrl });
 
   } catch (error) {
-    console.error("Checkout error:", error);
+    console.error("❌ Checkout error:", error);
 
     return NextResponse.json(
       { error: "Something went wrong" },
