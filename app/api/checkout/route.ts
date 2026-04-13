@@ -73,7 +73,6 @@ export async function POST(req: Request) {
       notify_url,
       name_first: "Supporter",
       name_last: "User",
-      email_address: "test@atips.co.za",
       m_payment_id,
       amount: Number(amount).toFixed(2),
       item_name: `Tip for ${actorName.trim()}`,
