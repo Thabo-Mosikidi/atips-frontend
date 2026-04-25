@@ -1,15 +1,3 @@
-/**
- * app/page.tsx (PREMIUM VERSION)
- *
- * ----------------------------------------------------
- * FULL UPGRADE:
- * - Premium actor cards (cinematic)
- * - Improved layout spacing
- * - Red + blue brand balance
- * - Better search UX
- * - Strong visual hierarchy
- */
-
 export const dynamic = "force-dynamic";
 
 import Image from "next/image";
@@ -17,9 +5,6 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import TipBox from "./actors/[id]/TipBox";
 
-/**
- * Fetch actors
- */
 async function getActors(search?: string) {
   return prisma.actor.findMany({
     where: search
@@ -46,124 +31,81 @@ export default async function HomePage({
   const actors = await getActors(search);
 
   return (
-    <main className="bg-gray-50">
+    <main className="relative min-h-screen overflow-hidden bg-[#0A1F44]">
 
-      {/* =========================================
-          DIRECTORY HEADER
-      ========================================== */}
-      <section className="sticky top-0 z-30 bg-gray-50/95 backdrop-blur border-b border-gray-200">
+      {/* 🔥 BACKGROUND GLOW (no structure change) */}
+      <div className="absolute inset-0 -z-10">
 
+        <div className="absolute top-[-120px] left-[-120px] w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[120px]" />
+
+        <div className="absolute bottom-[-150px] right-[-150px] w-[500px] h-[500px] bg-red-500/20 rounded-full blur-[120px]" />
+
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0A1F44] via-[#081735] to-[#050d1f]" />
+
+      </div>
+
+      {/* HEADER (unchanged structure, only color tweaks) */}
+      <section className="sticky top-0 z-30 bg-[#0A1F44]/90 backdrop-blur border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
 
-          {/* TITLE */}
           <div className="text-center">
-            <h1 className="text-2xl md:text-3xl font-semibold text-gray-900">
-              A.TIPS <span className="text-red-600">Actors Directory</span>
+            <h1 className="text-2xl md:text-3xl font-semibold text-white tracking-tight">
+              A.TIPS <span className="text-red-500">Actors Directory</span>
             </h1>
 
-            {/* RED DIVIDER */}
             <div className="w-20 h-1 bg-red-500 mx-auto mt-3 rounded-full"></div>
           </div>
 
-          {/* SEARCH */}
           <form method="GET" className="flex justify-center gap-3">
-
             <input
               type="text"
               name="search"
               defaultValue={search}
               placeholder="Search actors..."
-              className="
-                w-full max-w-lg
-                px-5 py-3
-                border border-gray-300
-                rounded-xl
-                shadow-sm
-                focus:outline-none
-                focus:ring-2
-                focus:ring-red-500
-              "
+              className="w-full max-w-lg px-5 py-3 border border-white/20 bg-white/10 text-white rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 placeholder:text-gray-300"
             />
 
             <Link
               href="/"
-              className="
-                px-5 py-3
-                bg-gray-200
-                rounded-xl
-                text-sm
-                hover:bg-gray-300
-                transition
-              "
+              className="px-5 py-3 bg-white/20 text-white rounded-xl text-sm hover:bg-white/30 transition"
             >
               Reset
             </Link>
-
           </form>
-
         </div>
-
       </section>
 
-      {/* =========================================
-          ACTOR GRID
-      ========================================== */}
-      <section className="max-w-7xl mx-auto px-6 py-12">
+      {/* GRID SECTION */}
+      <section className="max-w-7xl mx-auto px-6 py-12 relative">
+
+        {/* subtle glass panel behind cards */}
+        <div className="absolute inset-0 bg-white/5 backdrop-blur-sm rounded-3xl border border-white/10 -z-10" />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-8">
 
           {actors.map((actor) => (
-
             <div
               key={actor.id}
-              className="
-                group
-                bg-white
-                rounded-2xl
-                shadow-sm
-                border border-gray-200
-                overflow-hidden
-                transition-all duration-300
-                hover:shadow-2xl
-                hover:-translate-y-2
-              "
+              className="group bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-white/20 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-2"
             >
 
-              {/* =========================================
-                  IMAGE + CINEMATIC OVERLAY
-              ========================================== */}
+              {/* IMAGE */}
               <div className="relative w-full h-56 overflow-hidden">
-
                 <Image
                   src={actor.imageUrl}
                   alt={actor.name}
                   fill
-                  className="
-                    object-cover object-[50%_18%]
-                    transition-transform duration-500
-                    group-hover:scale-110
-                  "
+                  className="object-cover object-[50%_18%] transition-transform duration-500 group-hover:scale-110"
                 />
 
-                {/* GRADIENT OVERLAY */}
-                <div className="
-                  absolute inset-0
-                  bg-gradient-to-t from-black/60 via-black/10 to-transparent
-                " />
-
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
               </div>
 
-              {/* =========================================
-                  CARD CONTENT
-              ========================================== */}
+              {/* CONTENT */}
               <div className="p-6 text-center space-y-5">
 
-                {/* NAME + BIO */}
                 <div>
-                  <h2 className="
-                    text-lg font-semibold text-gray-900
-                    group-hover:text-red-600 transition
-                  ">
+                  <h2 className="text-lg font-semibold text-gray-900 group-hover:text-red-600 transition">
                     {actor.name}
                   </h2>
 
@@ -172,34 +114,24 @@ export default async function HomePage({
                   </p>
                 </div>
 
-                {/* TIP BOX */}
+                {/* 🔥 DO NOT TOUCH STRUCTURE */}
                 <TipBox
                   actorId={actor.id}
                   actorName={actor.name}
                 />
 
-                {/* PROFILE LINK */}
                 <Link
                   href={`/actors/${actor.id}`}
-                  className="
-                    inline-block
-                    text-sm font-semibold
-                    text-blue-600
-                    hover:text-red-600
-                    transition
-                  "
+                  className="inline-block text-sm font-semibold text-blue-600 hover:text-red-600 transition"
                 >
                   View Full Profile →
                 </Link>
 
               </div>
-
             </div>
-
           ))}
 
         </div>
-
       </section>
 
     </main>

@@ -1,21 +1,18 @@
 "use client";
 
 /**
- * TipBox Component (FINAL - PRODUCTION UI)
- * ---------------------------------------------------
- * ✅ Compact card layout
- * ✅ Confirm modal (with legal links)
- * ✅ PayFast ready
- * ✅ Source-aware cancel redirect
+ * TipBox Component (PREMIUM UI UPGRADE)
+ * ---------------------------------------
+ * ✅ Luxury UI (gold + premium red)
+ * ✅ Smooth interactions
+ * ✅ Same business logic (safe)
  */
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 
-/* --------------------------------------------------
-   BUSINESS RULES
----------------------------------------------------*/
+/* ================= BUSINESS RULES ================= */
 const MIN_AMOUNT = 10;
 const MAX_AMOUNT = 10000;
 
@@ -33,9 +30,13 @@ export default function TipBox({
 
   const presetAmounts = [10, 25, 50];
 
-  /* --------------------------------------------------
-     VALIDATION BEFORE MODAL
-  ---------------------------------------------------*/
+  /* ================= USD CONVERSION ================= */
+  const usd =
+    amount && Number(amount) >= MIN_AMOUNT
+      ? (Number(amount) / 18).toFixed(2)
+      : null;
+
+  /* ================= VALIDATION ================= */
   const openConfirm = () => {
     const numericAmount = Number(amount);
     setError("");
@@ -60,9 +61,7 @@ export default function TipBox({
 
   const closeConfirm = () => setConfirmOpen(false);
 
-  /* --------------------------------------------------
-     START PAYMENT
-  ---------------------------------------------------*/
+  /* ================= PAYMENT ================= */
   const startPayment = async () => {
     const numericAmount = Number(amount);
 
@@ -79,7 +78,8 @@ export default function TipBox({
           actorId,
           actorName,
           amount: numericAmount,
-          source: window.location.pathname + window.location.search, // 🔥 FULL STATE
+          source:
+            window.location.pathname + window.location.search,
         }),
       });
 
@@ -92,7 +92,6 @@ export default function TipBox({
       }
 
       window.location.href = data.url;
-
     } catch (err) {
       console.error(err);
       alert("Something went wrong");
@@ -103,12 +102,10 @@ export default function TipBox({
 
   return (
     <>
-      {/* ===============================
-         MAIN UI
-      =============================== */}
-      <div className="flex flex-col items-center space-y-2 w-full">
+      {/* ================= MAIN UI ================= */}
+      <div className="flex flex-col items-center space-y-3 w-full">
 
-        {/* PRESET BUTTONS */}
+        {/* ===== PRESET BUTTONS ===== */}
         <div className="flex gap-2">
           {presetAmounts.map((amt) => (
             <button
@@ -117,18 +114,22 @@ export default function TipBox({
                 setAmount(String(amt));
                 setError("");
               }}
-              className={`px-3 py-1 text-sm rounded-md font-medium ${
-                amount === String(amt)
-                  ? "bg-red-600 text-white"
-                  : "bg-gray-200 text-gray-700"
-              }`}
+              className={`
+                px-4 py-1.5 text-sm rounded-full font-medium transition-all duration-200
+                border
+                ${
+                  amount === String(amt)
+                    ? "bg-gradient-to-r from-[#C9A34E] to-[#E6C878] text-black border-transparent shadow-md"
+                    : "bg-white/80 text-gray-700 border-gray-300 hover:bg-white"
+                }
+              `}
             >
               R{amt}
             </button>
           ))}
         </div>
 
-        {/* INPUT */}
+        {/* ===== INPUT ===== */}
         <input
           type="number"
           value={amount}
@@ -137,36 +138,53 @@ export default function TipBox({
             setError("");
           }}
           placeholder="Enter amount (R10)"
-          className="w-full px-2 py-1 text-sm rounded-md text-center
-                     border border-gray-400
-                     bg-white text-gray-900
-                     placeholder-gray-500
-                     focus:outline-none focus:ring-2 focus:ring-red-500"
+          className="
+            w-full px-3 py-2 text-sm rounded-lg text-center
+            border border-gray-300
+            bg-white/90 text-gray-900
+            placeholder-gray-400
+            focus:outline-none focus:ring-2 focus:ring-[#C9A34E]
+            transition
+          "
         />
+
+        {/* USD */}
+        {usd && (
+          <p className="text-[11px] text-gray-500">
+            ≈ ${usd} USD
+          </p>
+        )}
 
         {/* ERROR */}
         {error && (
           <p className="text-red-500 text-xs text-center">{error}</p>
         )}
 
-        {/* BUTTON */}
+        {/* ===== CTA BUTTON ===== */}
         <button
           onClick={openConfirm}
           disabled={loading}
-          className="w-full bg-red-600 hover:bg-red-700 text-white py-2 text-sm rounded-md font-medium"
+          className="
+            w-full
+            bg-gradient-to-r from-[#D90429] to-[#A60321]
+            hover:from-[#ff1a3c] hover:to-[#b30026]
+            transition-all duration-200
+            text-white py-2.5 text-sm rounded-lg font-semibold
+            shadow-lg hover:shadow-xl
+            active:scale-[0.98]
+          "
         >
           {loading ? "Processing..." : "Tip Now"}
         </button>
 
         {/* TRUST TEXT */}
         <p className="text-[10px] text-gray-500 text-center">
-          🔒 Secure payment powered by PayFast
+          🔒 Secure payment powered by PayPal
         </p>
+
       </div>
 
-      {/* ===============================
-         CONFIRM MODAL
-      =============================== */}
+      {/* ================= MODAL ================= */}
       {confirmOpen &&
         typeof window !== "undefined" &&
         createPortal(
@@ -194,10 +212,16 @@ export default function TipBox({
               </p>
 
               <p className="text-sm text-gray-700">
-                Amount: <span className="font-semibold">R{amount}</span>
+                Amount:{" "}
+                <span className="font-semibold">R{amount}</span>
               </p>
 
-              {/* LEGAL TEXT */}
+              {usd && (
+                <p className="text-xs text-gray-500">
+                  ≈ ${usd} USD
+                </p>
+              )}
+
               <p className="text-[11px] text-gray-500 leading-relaxed">
                 By continuing, you agree to our{" "}
                 <Link href="/terms" className="underline">
@@ -209,7 +233,6 @@ export default function TipBox({
                 </Link>.
               </p>
 
-              {/* ACTION BUTTONS */}
               <div className="flex justify-center gap-3 pt-2">
                 <button
                   onClick={closeConfirm}

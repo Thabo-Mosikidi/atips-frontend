@@ -1,21 +1,18 @@
 /**
- * PayFast Checkout API (FINAL - PRODUCTION READY)
+ * PAYPAL CHECKOUT API (DROP-IN REPLACEMENT)
  * ---------------------------------------------------
- * ✅ Live / Sandbox switching
- * ✅ Correct signature generation
- * ✅ Passphrase support
- * ✅ Clean redirect handling
- * ✅ Debug logs included
+ * ✅ Same route: /api/checkout
+ * ✅ Same response: { url }
+ * ✅ No UI changes required
+ * ✅ ZAR → USD conversion
  */
 
 import { NextResponse } from "next/server";
-import crypto from "crypto";
 
-/* --------------------------------------------------
-   PAYFAST ENCODE (IMPORTANT)
----------------------------------------------------*/
-function encodePF(value: string) {
-  return encodeURIComponent(value).replace(/%20/g, "+");
+/* ---------------- ZAR → USD ---------------- */
+function convertZarToUsd(amount: number) {
+  const rate = 18; // keep your existing rate
+  return (amount / rate).toFixed(2);
 }
 
 export async function POST(req: Request) {
@@ -40,17 +37,40 @@ export async function POST(req: Request) {
     }
 
     /* ---------------- ENV ---------------- */
-    const merchant_id = process.env.PAYFAST_MERCHANT_ID!;
-    const merchant_key = process.env.PAYFAST_MERCHANT_KEY!;
+    const clientId = process.env.PAYPAL_CLIENT_ID!;
+    const secret = process.env.PAYPAL_SECRET!;
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL!;
-    const passphrase = process.env.PAYFAST_PASSPHRASE || "";
 
-    const isLive = process.env.PAYFAST_LIVE === "true";
+    const isLive = process.env.PAYPAL_LIVE === "true";
 
-    /* ---------------- PAYMENT ID ---------------- */
-    const m_payment_id = `${actorId}-${Date.now()}`;
+    const PAYPAL_BASE = isLive
+      ? "https://api-m.paypal.com"
+      : "https://api-m.sandbox.paypal.com";
 
-    /* ---------------- REDIRECT URLs ---------------- */
+    /* ---------------- GET ACCESS TOKEN ---------------- */
+    const auth = Buffer.from(`${clientId}:${secret}`).toString("base64");
+
+    const tokenRes = await fetch(`${PAYPAL_BASE}/v1/oauth2/token`, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${auth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: "grant_type=client_credentials",
+    });
+
+    const tokenData = await tokenRes.json();
+
+    if (!tokenData.access_token) {
+      console.error("❌ PayPal Token Error:", tokenData);
+      return NextResponse.json(
+        { error: "PayPal auth failed" },
+        { status: 500 }
+      );
+    }
+
+    /* ---------------- ORDER ---------------- */
+    const usdAmount = convertZarToUsd(Number(amount));
 
     const return_url = `${baseUrl}/success?actorId=${encodeURIComponent(
       actorId
@@ -62,51 +82,52 @@ export async function POST(req: Request) {
       ? `${baseUrl}${source}`
       : `${baseUrl}/`;
 
-    const notify_url = `${baseUrl}/api/webhooks/payfast`;
+    const orderRes = await fetch(`${PAYPAL_BASE}/v2/checkout/orders`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${tokenData.access_token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        intent: "CAPTURE",
+        purchase_units: [
+          {
+            reference_id: actorId,
+            description: `Tip for ${actorName}`,
+            amount: {
+              currency_code: "USD",
+              value: usdAmount,
+            },
+          },
+        ],
+        application_context: {
+          return_url,
+          cancel_url,
+          user_action: "PAY_NOW",
+        },
+      }),
+    });
 
-    /* ---------------- PAYMENT DATA ---------------- */
-    const paymentData: Record<string, string> = {
-      merchant_id,
-      merchant_key,
-      return_url,
-      cancel_url,
-      notify_url,
-      name_first: "Supporter",
-      name_last: "User",
-      m_payment_id,
-      amount: Number(amount).toFixed(2),
-      item_name: `Tip for ${actorName.trim()}`,
-    };
+    const orderData = await orderRes.json();
 
-    /* ---------------- SIGNATURE ---------------- */
-    const sortedKeys = Object.keys(paymentData).sort();
+    const approvalUrl = orderData.links?.find(
+      (link: any) => link.rel === "approve"
+    )?.href;
 
-    const query = sortedKeys
-      .map((key) => `${key}=${encodePF(paymentData[key])}`)
-      .join("&");
+    if (!approvalUrl) {
+      console.error("❌ PayPal Order Error:", orderData);
+      return NextResponse.json(
+        { error: "No approval URL" },
+        { status: 500 }
+      );
+    }
 
-    const signatureBase = passphrase
-      ? `${query}&passphrase=${encodePF(passphrase)}`
-      : query;
+    /* ---------------- DEBUG ---------------- */
+    console.log("🚀 PAYPAL MODE:", isLive ? "LIVE" : "SANDBOX");
+    console.log("💰 USD:", usdAmount);
 
-    const signature = crypto
-      .createHash("md5")
-      .update(signatureBase)
-      .digest("hex");
-
-    /* ---------------- PAYFAST URL ---------------- */
-    const PAYFAST_URL = isLive
-      ? "https://www.payfast.co.za/eng/process"
-      : "https://sandbox.payfast.co.za/eng/process";
-
-    /* ---------------- DEBUG LOGS ---------------- */
-    console.log("🚀 PAYFAST MODE:", isLive ? "LIVE" : "SANDBOX");
-    console.log("🔗 PAYFAST URL:", PAYFAST_URL);
-
-    /* ---------------- FINAL REDIRECT ---------------- */
-    const redirectUrl = `${PAYFAST_URL}?${query}&signature=${signature}`;
-
-    return NextResponse.json({ url: redirectUrl });
+    /* ---------------- RETURN SAME FORMAT ---------------- */
+    return NextResponse.json({ url: approvalUrl });
 
   } catch (error) {
     console.error("❌ Checkout error:", error);
