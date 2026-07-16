@@ -7,7 +7,7 @@
  * ✅ Saves system + human reference
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 
@@ -22,7 +22,7 @@ function slugify(name: string): string {
     .replace(/^_|_$/g, "");
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest): Promise<Response> {
   try {
     /* ---------------- RAW BODY ---------------- */
     const raw = await req.text();
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
 
     const cleaned = raw
       .split("&")
-      .filter((item) => !item.startsWith("signature="))
+      .filter((item: string) => !item.startsWith("signature="))
       .join("&");
 
     const stringToHash = passphrase

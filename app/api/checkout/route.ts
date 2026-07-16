@@ -7,7 +7,14 @@
  * ✅ ZAR → USD conversion
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+
+interface CheckoutBody {
+  actorId?: string;
+  actorName?: string;
+  amount?: number;
+  source?: string;
+}
 
 /* ---------------- ZAR → USD ---------------- */
 function convertZarToUsd(amount: number) {
@@ -15,9 +22,9 @@ function convertZarToUsd(amount: number) {
   return (amount / rate).toFixed(2);
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest): Promise<Response> {
   try {
-    const body = await req.json();
+    const body = (await req.json()) as CheckoutBody;
 
     const { actorId, actorName, amount, source } = body;
 
@@ -59,7 +66,7 @@ export async function POST(req: Request) {
       body: "grant_type=client_credentials",
     });
 
-    const tokenData = await tokenRes.json();
+    const tokenData = (await tokenRes.json()) as { access_token?: string };
 
     if (!tokenData.access_token) {
       console.error("❌ PayPal Token Error:", tokenData);
@@ -108,10 +115,12 @@ export async function POST(req: Request) {
       }),
     });
 
-    const orderData = await orderRes.json();
+    const orderData = (await orderRes.json()) as {
+      links?: Array<{ rel?: string; href?: string }>;
+    };
 
     const approvalUrl = orderData.links?.find(
-      (link: any) => link.rel === "approve"
+      (link) => link.rel === "approve"
     )?.href;
 
     if (!approvalUrl) {
