@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 type ActorData = {
   id: string;
@@ -13,7 +14,7 @@ type ActorData = {
   imageUrl: string;
 };
 
-type Step = "profile" | "tip" | "checkout" | "confirmed";
+type Step = "profile" | "tip" | "checkout";
 
 const PRESET_AMOUNTS = [10, 25, 50, 100];
 const MIN_AMOUNT = 10;
@@ -25,33 +26,30 @@ export default function ViewerJourney({ actor }: { actor: ActorData }) {
   const [customAmount, setCustomAmount] = useState("");
   const [error, setError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const effectiveAmount = useMemo(() => {
     const selected = customAmount.trim() ? customAmount : tipAmount;
     return Number(selected) || 0;
   }, [customAmount, tipAmount]);
 
-  useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 1800);
-    return () => window.clearTimeout(timer);
-  }, [copied]);
+  const usdAmount = useMemo(() => {
+    return (effectiveAmount / 18).toFixed(2);
+  }, [effectiveAmount]);
 
   const validateAmount = (value: string) => {
     const numeric = Number(value);
     if (!value || Number.isNaN(numeric)) {
-      setError("Choose an amount to continue.");
+      setError("Please choose or enter a valid amount.");
       return false;
     }
 
     if (numeric < MIN_AMOUNT) {
-      setError(`Minimum tip is R${MIN_AMOUNT}.`);
+      setError(`Minimum tip amount is R${MIN_AMOUNT}.`);
       return false;
     }
 
     if (numeric > MAX_AMOUNT) {
-      setError(`Maximum tip is R${MAX_AMOUNT}.`);
+      setError(`Maximum tip amount is R${MAX_AMOUNT}.`);
       return false;
     }
 
@@ -70,47 +68,75 @@ export default function ViewerJourney({ actor }: { actor: ActorData }) {
     setStep("checkout");
   };
 
-  const completeTip = () => {
-    if (!validateAmount(customAmount.trim() ? customAmount : tipAmount)) return;
+  const triggerPayment = async () => {
+    const amount = customAmount.trim() ? customAmount : tipAmount;
+    if (!validateAmount(amount)) return;
+
     setIsProcessing(true);
-    window.setTimeout(() => {
-      setIsProcessing(false);
-      setStep("confirmed");
-    }, 900);
-  };
+    setError("");
 
-  const shareMoment = async () => {
-    const shareText = `I just tipped ${actor.name} through A.TIPS. 80% of every tip goes directly to the actor.`;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Tip ${actor.name}`,
-          text: shareText,
-          url: typeof window !== "undefined" ? window.location.href : "",
-        });
-      } catch {
-        // Ignore dismissals
+    try {
+      // Create session token or get from session storage
+      let sessionToken = sessionStorage.getItem("atips_session");
+      if (!sessionToken) {
+        sessionToken = crypto.randomUUID();
+        sessionStorage.setItem("atips_session", sessionToken);
       }
-      return;
-    }
 
-    if (navigator.clipboard) {
-      await navigator.clipboard.writeText(shareText);
-      setCopied(true);
+      // Check for showId / episodeId in query parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const showId = urlParams.get("showId") || undefined;
+      const episodeId = urlParams.get("episodeId") || undefined;
+      const qrCodeId = urlParams.get("qrCodeId") || undefined;
+
+      const response = await fetch("/api/tips", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          actorId: actor.id,
+          amount: Number(amount),
+          sessionToken,
+          showId,
+          episodeId,
+          qrCodeId,
+          source: window.location.pathname + window.location.search,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to initialize payment.");
+      }
+
+      // Redirect to PayPal Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL returned from payment gateway.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "An error occurred. Please try again.");
+      setIsProcessing(false);
     }
   };
 
-  const stepIndex = step === "profile" ? 1 : step === "tip" ? 2 : step === "checkout" ? 3 : 4;
+  const stepIndex = step === "profile" ? 1 : step === "tip" ? 2 : 3;
 
   const renderStepContent = () => {
     switch (step) {
       case "tip":
         return (
-          <div className="space-y-5 transition-all duration-300 ease-out">
-            <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm text-cyan-100">
-              Pick an amount that feels right. Every tip helps support the talent directly.
+          <div className="space-y-6 animate-fade-in">
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold text-white tracking-tight">Select Tip Amount</h2>
+              <p className="text-xs text-slate-400">100% secure transaction. Choose an option below:</p>
             </div>
 
+            {/* PRESETS */}
             <div className="grid grid-cols-2 gap-3">
               {PRESET_AMOUNTS.map((amount) => (
                 <button
@@ -120,56 +146,72 @@ export default function ViewerJourney({ actor }: { actor: ActorData }) {
                     setCustomAmount("");
                     setError("");
                   }}
-                  className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
+                  className={`relative rounded-2xl border px-4 py-4 text-left transition-all duration-300 ${
                     String(amount) === tipAmount && !customAmount
-                      ? "border-cyan-300 bg-cyan-300/20 text-cyan-50 shadow-[0_0_0_1px_rgba(34,211,238,0.25)]"
-                      : "border-white/10 bg-white/10 text-slate-300 hover:border-cyan-300/40 hover:bg-white/20"
+                      ? "border-[#C9A34E] bg-[#C9A34E]/10 text-white gold-glow-active"
+                      : "border-white/5 bg-white/5 text-slate-300 hover:border-white/10 hover:bg-white/10"
                   }`}
                 >
-                  <span className="block text-lg">R{amount}</span>
-                  <span className="mt-1 block text-[11px] uppercase tracking-[0.28em] text-slate-400">
+                  <span className="block text-2xl font-bold">R{amount}</span>
+                  <span className="mt-1 block text-[10px] font-semibold uppercase tracking-widest text-slate-400">
                     {amount >= 50 ? "High impact" : "Quick support"}
                   </span>
+                  
+                  {String(amount) === tipAmount && !customAmount && (
+                    <span className="absolute top-3 right-3 w-2 h-2 bg-[#C9A34E] rounded-full"></span>
+                  )}
                 </button>
               ))}
             </div>
 
-            <label className="block rounded-2xl border border-white/10 bg-black/20 p-4">
-              <span className="mb-2 block text-sm font-medium uppercase tracking-[0.24em] text-slate-400">
-                Custom amount
+            {/* CUSTOM INPUT */}
+            <div className="rounded-2xl border border-white/5 bg-black/20 p-4 space-y-2">
+              <span className="block text-[10px] font-bold uppercase tracking-widest text-[#C9A34E]">
+                Custom amount (ZAR)
               </span>
-              <input
-                type="number"
-                min={MIN_AMOUNT}
-                value={customAmount}
-                onChange={(event) => {
-                  setCustomAmount(event.target.value);
-                  setError("");
-                }}
-                placeholder={`Minimum R${MIN_AMOUNT}`}
-                className="w-full rounded-xl border border-white/10 bg-[#030816] px-4 py-3 text-lg font-semibold text-white outline-none ring-0 placeholder:text-slate-500"
-              />
-            </label>
-
-            <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
-              <div className="font-semibold">80% goes directly to {actor.name}</div>
-              <div className="mt-1 text-amber-50/80">The rest keeps the platform running smoothly.</div>
+              <div className="relative flex items-center">
+                <span className="absolute left-4 text-lg font-semibold text-slate-400">R</span>
+                <input
+                  type="number"
+                  min={MIN_AMOUNT}
+                  max={MAX_AMOUNT}
+                  value={customAmount}
+                  onChange={(event) => {
+                    setCustomAmount(event.target.value);
+                    setError("");
+                  }}
+                  placeholder="Enter custom amount"
+                  className="w-full rounded-xl border border-white/10 bg-[#0A1F44] pl-10 pr-4 py-3.5 text-lg font-semibold text-white focus:outline-none focus:ring-2 focus:ring-[#C9A34E]/50 focus:border-[#C9A34E] transition placeholder:text-slate-500"
+                />
+              </div>
             </div>
 
-            {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+            {/* SPLIT BREAKDOWN */}
+            <div className="rounded-2xl border border-[#C9A34E]/10 bg-[#C9A34E]/5 p-4 text-xs text-[#C9A34E]/90 leading-relaxed space-y-1">
+              <div className="font-semibold flex justify-between">
+                <span>80% goes directly to {actor.name}</span>
+                <span className="text-white">R{(effectiveAmount * 0.8).toFixed(2)}</span>
+              </div>
+              <div className="text-slate-400 flex justify-between">
+                <span>20% platform & hosting fee</span>
+                <span>R{(effectiveAmount * 0.2).toFixed(2)}</span>
+              </div>
+            </div>
 
-            <div className="flex gap-3">
+            {error && <p className="text-xs text-red-400 font-medium bg-red-950/20 border border-red-500/10 px-3 py-2 rounded-xl">{error}</p>}
+
+            <div className="flex gap-3 pt-2">
               <button
                 onClick={() => setStep("profile")}
-                className="flex-1 rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/12"
+                className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm font-semibold text-slate-200 hover:bg-white/10 transition"
               >
                 Back
               </button>
               <button
                 onClick={goToCheckout}
-                className="flex-1 rounded-2xl bg-linear-to-r from-cyan-400 to-fuchsia-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+                className="flex-1 rounded-xl bg-gradient-to-r from-[#D90429] to-[#A60321] px-4 py-3.5 text-sm font-bold text-white hover:from-[#ff1a3c] hover:to-[#b30026] shadow-lg shadow-red-950/20 transition red-glow-hover"
               >
-                Continue to checkout
+                Continue
               </button>
             </div>
           </div>
@@ -177,88 +219,79 @@ export default function ViewerJourney({ actor }: { actor: ActorData }) {
 
       case "checkout":
         return (
-          <div className="space-y-5 transition-all duration-300 ease-out">
-            <div className="rounded-2xl border border-white/10 bg-white/8 p-4">
-              <div className="text-xs uppercase tracking-[0.3em] text-slate-400">Secure tip</div>
-              <div className="mt-2 flex items-end justify-between">
+          <div className="space-y-6 animate-fade-in">
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold text-white tracking-tight">Confirm & Pay</h2>
+              <p className="text-xs text-slate-400">Review your tip summary details below:</p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-[#0d254f]/50 p-5 space-y-4 shadow-inner">
+              <div className="flex items-center justify-between border-b border-white/5 pb-3">
                 <div>
-                  <div className="text-3xl font-semibold text-white">R{effectiveAmount}</div>
-                  <div className="text-sm text-slate-400">for {actor.name}</div>
+                  <span className="text-[10px] uppercase tracking-wider text-slate-400">Recipient</span>
+                  <p className="text-base font-bold text-white">{actor.name}</p>
                 </div>
-                <div className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-200">
-                  Mock success
+                <div className="text-right">
+                  <span className="text-[10px] uppercase tracking-wider text-slate-400">Role</span>
+                  <p className="text-xs text-[#C9A34E] font-medium">{actor.role || "Featured Performer"}</p>
+                </div>
+              </div>
+              
+              <div className="flex justify-between items-end">
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider text-slate-400">Amount</span>
+                  <p className="text-3xl font-extrabold text-white">R{effectiveAmount}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] uppercase tracking-wider text-slate-400">USD Approx</span>
+                  <p className="text-sm font-medium text-slate-300">≈ ${usdAmount} USD</p>
                 </div>
               </div>
             </div>
 
-            <div className="grid gap-3">
-              {[
-                ["Card", "•••• 4242"],
-                ["PayPal", "Fast checkout"],
-                ["Bank transfer", "Instant"],
-              ].map(([label, hint]) => (
-                <button
-                  key={label}
-                  className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-left text-sm text-slate-200 transition hover:border-cyan-300/40 hover:bg-white/10"
-                >
-                  <span className="font-medium">{label}</span>
-                  <span className="text-slate-400">{hint}</span>
-                </button>
-              ))}
+            {/* TRUST BADGE AND SECURITY STATEMENTS */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
+                <span className="text-lg">🔒</span>
+                <p className="text-[10px] text-slate-300 leading-relaxed">
+                  Your transaction is encrypted. We partner with <span className="font-semibold text-white">PayPal</span> for secure global payment capture.
+                </p>
+              </div>
+
+              {/* Secure logos */}
+              <div className="flex justify-center items-center gap-3 opacity-60 grayscale hover:opacity-100 hover:grayscale-0 transition duration-300">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" className="h-4 object-contain" />
+                <span className="text-slate-500">|</span>
+                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Visa • Mastercard • AMEX</span>
+              </div>
             </div>
 
-            {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+            {error && <p className="text-xs text-red-400 font-medium bg-red-950/20 border border-red-500/10 px-3 py-2 rounded-xl">{error}</p>}
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-2">
               <button
                 onClick={() => setStep("tip")}
-                className="flex-1 rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/12"
+                disabled={isProcessing}
+                className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm font-semibold text-slate-200 hover:bg-white/10 transition disabled:opacity-50"
               >
                 Back
               </button>
               <button
-                onClick={completeTip}
+                onClick={triggerPayment}
                 disabled={isProcessing}
-                className="flex-1 rounded-2xl bg-linear-to-r from-fuchsia-500 to-amber-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:opacity-90 disabled:cursor-wait disabled:opacity-70"
+                className="flex-[2] rounded-xl bg-gradient-to-r from-[#D90429] to-[#A60321] px-6 py-3.5 text-sm font-bold text-white hover:from-[#ff1a3c] hover:to-[#b30026] shadow-lg shadow-red-950/30 transition disabled:opacity-75 disabled:cursor-wait red-glow-hover flex items-center justify-center gap-2"
               >
-                {isProcessing ? "Confirming…" : "Complete tip"}
-              </button>
-            </div>
-          </div>
-        );
-
-      case "confirmed":
-        return (
-          <div className="space-y-5 transition-all duration-300 ease-out">
-            <div className="rounded-2xl border border-emerald-400/25 bg-emerald-400/10 p-5 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-400/20 text-3xl text-emerald-200">
-                ✓
-              </div>
-              <h2 className="mt-4 text-2xl font-semibold text-white">Tip confirmed</h2>
-              <p className="mt-2 text-sm text-emerald-50/80">
-                Your tip of R{effectiveAmount} is on its way to {actor.name}.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm text-cyan-100">
-              <div className="font-semibold">80% reaches the actor, directly.</div>
-              <div className="mt-1 text-cyan-50/75">
-                The remaining portion keeps the experience secure and running smoothly.
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={shareMoment}
-                className="flex-1 rounded-2xl border border-cyan-300/30 bg-cyan-300/20 px-4 py-3 text-sm font-semibold text-cyan-50 transition hover:bg-cyan-300/30"
-              >
-                {copied ? "Copied" : "Share the moment"}
-              </button>
-              <button
-                onClick={() => setStep("profile")}
-                className="flex-1 rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/12"
-              >
-                Back to profile
+                {isProcessing ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Redirecting to PayPal...
+                  </>
+                ) : (
+                  "Pay Now with PayPal"
+                )}
               </button>
             </div>
           </div>
@@ -267,24 +300,40 @@ export default function ViewerJourney({ actor }: { actor: ActorData }) {
       case "profile":
       default:
         return (
-          <div className="space-y-5 transition-all duration-300 ease-out">
-            <div className="rounded-2xl border border-white/10 bg-white/8 p-4">
-              <div className="text-xs uppercase tracking-[0.3em] text-slate-400">Viewer landing</div>
-              <p className="mt-3 text-sm leading-7 text-slate-300">
-                {actor.bioFull || actor.bio || "A rising talent ready to be supported after the credits roll."}
+          <div className="space-y-6 animate-fade-in">
+            <div className="space-y-4">
+              <div className="inline-block text-[9px] uppercase tracking-[0.3em] font-bold text-[#C9A34E] bg-[#C9A34E]/10 border border-[#C9A34E]/20 px-3 py-1 rounded-md">
+                Viewer Landing
+              </div>
+              <h2 className="text-xl font-bold text-white tracking-tight">Support local artist</h2>
+              <p className="text-sm text-slate-300 leading-relaxed font-light">
+                {actor.bioFull || actor.bio || "A highly respected screen actor. Show your appreciation for their role and performance directly."}
               </p>
             </div>
 
-            <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
-              <div className="font-semibold">Why fans love this</div>
-              <div className="mt-1 text-amber-50/85">The experience is fast, premium, and frictionless from QR scan to confirmation.</div>
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-3 shadow-inner">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Why support directly?</h3>
+              <ul className="text-xs text-slate-400 space-y-2 font-light">
+                <li className="flex items-start gap-2">
+                  <span className="text-[#C9A34E]">✓</span>
+                  <span>Direct contribution (80% net goes to the actor)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-[#C9A34E]">✓</span>
+                  <span>Instant, frictionless digital tip execution</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-[#C9A34E]">✓</span>
+                  <span>Secured and guaranteed transaction audits</span>
+                </li>
+              </ul>
             </div>
 
             <button
               onClick={goToTipSelection}
-              className="w-full rounded-2xl bg-linear-to-r from-cyan-400 via-sky-500 to-fuchsia-500 px-4 py-4 text-lg font-semibold text-slate-950 transition hover:opacity-90"
+              className="w-full rounded-xl bg-gradient-to-r from-[#D90429] to-[#A60321] py-4 text-base font-bold text-white hover:from-[#ff1a3c] hover:to-[#b30026] shadow-lg shadow-red-950/30 transition-all duration-200 active:scale-[0.98] red-glow-hover"
             >
-              Tip this actor
+              Tip This Actor
             </button>
           </div>
         );
@@ -292,45 +341,64 @@ export default function ViewerJourney({ actor }: { actor: ActorData }) {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#030816] text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.20),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(244,114,182,0.22),transparent_34%),linear-gradient(135deg,#030816_0%,#071425_50%,#030816_100%)]" />
-      <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "url('/glass.svg')", backgroundRepeat: "repeat", backgroundSize: "700px 500px" }} />
+    <main className="relative min-h-screen overflow-hidden bg-[#0A1F44] text-white flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+      {/* SUBTLE GLOW OVERLAYS */}
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute top-[10%] left-[20%] w-[500px] h-[500px] bg-red-500/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[10%] right-[20%] w-[500px] h-[500px] bg-[#C9A34E]/10 rounded-full blur-[120px]" />
+      </div>
 
-      <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col justify-center px-4 py-8 sm:px-6 lg:px-8">
-        <div className="rounded-4xl border border-white/10 bg-white/10 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.75)] backdrop-blur-xl sm:p-8 lg:p-10">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] text-cyan-100">
-              A.TIPS • QR Tip
-            </div>
-            <div className="text-sm text-slate-400">
-              Step {stepIndex} / 4
+      <div className="relative max-w-4xl w-full mx-auto">
+        <div className="glass-panel rounded-3xl p-6 sm:p-8 md:p-10 shadow-[0_24px_80px_rgba(2,6,23,0.7)] backdrop-blur-xl border border-white/10">
+          
+          {/* HEADER ROW */}
+          <div className="flex items-center justify-between border-b border-white/5 pb-6">
+            <Link href="/" className="flex items-center gap-2 hover:opacity-85 transition">
+              <img src="/favicon.png" alt="A.TIPS Logo" className="w-6 h-6 object-contain" />
+              <span className="tracking-tighter font-extrabold text-sm text-white uppercase">A.TIPS</span>
+            </Link>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                Step {stepIndex} of 3
+              </span>
+              <div className="flex gap-1">
+                <span className={`w-1.5 h-1.5 rounded-full ${step === "profile" ? "bg-[#C9A34E]" : "bg-slate-600"}`}></span>
+                <span className={`w-1.5 h-1.5 rounded-full ${step === "tip" ? "bg-[#C9A34E]" : "bg-slate-600"}`}></span>
+                <span className={`w-1.5 h-1.5 rounded-full ${step === "checkout" ? "bg-[#C9A34E]" : "bg-slate-600"}`}></span>
+              </div>
             </div>
           </div>
 
-          <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="rounded-3xl border border-white/10 bg-linear-to-br from-[#071129] via-[#071425] to-[#030816] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] sm:p-6">
-              <div className="relative h-64 overflow-hidden rounded-3xl border border-white/10 sm:h-80">
-                <Image src={actor.imageUrl} alt={actor.name} fill className="object-cover object-center" />
-                <div className="absolute inset-0 bg-linear-to-t from-[#030816] via-[#030816]/10 to-transparent" />
+          {/* TWO COLUMN GRID FOR DESKTOP */}
+          <div className="mt-8 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+            
+            {/* LEFT PROFILE PANEL */}
+            <div className="bg-[#0b2046]/80 rounded-2xl border border-white/5 p-5 flex flex-col space-y-6 shadow-inner">
+              <div className="relative h-64 sm:h-72 w-full rounded-xl overflow-hidden border border-white/10 bg-slate-950">
+                <Image
+                  src={actor.imageUrl}
+                  alt={actor.name}
+                  fill
+                  sizes="(max-width: 640px) 100vw, 50vw"
+                  priority
+                  className="object-cover object-[50%_18%]"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0A1F44] via-transparent to-transparent" />
               </div>
 
-              <div className="mt-6">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.38em] text-cyan-200/90">
-                  Featured performer
-                </div>
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+              <div className="space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#C9A34E]">
+                  {actor.role || actor.bioShort || "Featured Performer"}
+                </span>
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">
                   {actor.name}
                 </h1>
-                <div className="mt-3 text-sm uppercase tracking-[0.28em] text-slate-400">
-                  {actor.role || actor.bioShort || "On-screen presence"}
-                </div>
-                <p className="mt-4 text-base leading-7 text-slate-300">
-                  {actor.bioFull || actor.bio || "This profile is ready for a premium viewer experience."}
-                </p>
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-[#050B16]/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
+            {/* RIGHT WIZARD PANEL */}
+            <div className="bg-[#071329]/90 rounded-2xl border border-white/5 p-5 sm:p-6 shadow-inner flex flex-col justify-between min-h-[380px]">
               {renderStepContent()}
             </div>
           </div>

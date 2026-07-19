@@ -9,41 +9,154 @@ datasource db {
 
 model Actor {
   id        String   @id @default(uuid())
-
   name      String
   role      String?
-
   bio       String
   bioShort  String?
   bioFull   String?
-
   imageUrl  String
   number    Int?
-
   isActive  Boolean  @default(true)
-
-  tips      Tip[]
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  tips      Tip[]
+  qrs       QRCode[]
+  payouts   Payout[]
+  episodes  EpisodeActor[]
 
   @@index([isActive])
 }
 
-model Tip {
-  id                 String   @id @default(uuid())
-  amount             Int
-  actorId            String
-  createdAt          DateTime @default(now())
+model Show {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  imageUrl    String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  paystackReference  String   @unique
-  readableReference  String?  // 👈 NEW FIELD
+  episodes    Episode[]
+  qrs         QRCode[]
 
-  currency           String   @default("ZAR")
-  status             String   @default("success")
+  @@index([isActive])
+}
 
-  actor Actor @relation(fields: [actorId], references: [id])
+model Episode {
+  id        String   @id @default(uuid())
+  title     String?
+  number    Int
+  season    Int      @default(1)
+  showId    String
+  show      Show     @relation(fields: [showId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  qrs       QRCode[]
+  actors    EpisodeActor[]
+
+  @@index([showId])
+}
+
+model EpisodeActor {
+  episodeId String
+  actorId   String
+  episode   Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  actor     Actor   @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@id([episodeId, actorId])
+}
+
+model QRCode {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  type        String   // "STATIC_ACTOR" | "DYNAMIC_EPISODE"
+  actorId     String?
+  actor       Actor?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  showId      String?
+  show        Show?    @relation(fields: [showId], references: [id], onDelete: SetNull)
+  episodeId   String?
+  episode     Episode? @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+  targetUrl   String
+  scanCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([actorId])
+  @@index([showId])
+  @@index([episodeId])
+}
+
+model Viewer {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  tips         Tip[]
+  transactions Transaction[]
+}
+
+model Transaction {
+  id               String   @id @default(uuid())
+  amount           Int      // gross in cents (ZAR cents)
+  currency         String   @default("ZAR")
+  gateway          String   @default("PAYPAL") // "PAYPAL" or others
+  gatewayReference String   @unique
+  status           String   // "PENDING" | "COMPLETED" | "FAILED" | "CANCELLED"
+  viewerId         String?
+  viewer           Viewer?  @relation(fields: [viewerId], references: [id], onDelete: SetNull)
+  actorId          String
+  showId           String?
+  episodeId        String?
+  qrCodeId         String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tip              Tip?
+
+  @@index([viewerId])
+  @@index([actorId])
+}
+
+model Tip {
+  id                String      @id @default(uuid())
+  amount            Int         // gross amount in cents
+  actorAmount       Int         // 80% to actor
+  platformAmount    Int         // 20% to platform
+  currency          String      @default("ZAR")
+  status            String      @default("success") // "success" | "refunded"
+  actorId           String
+  actor             Actor       @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  viewerId          String?
+  viewer            Viewer?     @relation(fields: [viewerId], references: [id], onDelete: SetNull)
+  transactionId     String      @unique
+  transaction       Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  readableReference String?     @unique
+  payoutId          String?
+  payout            Payout?     @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([actorId])
+  @@index([viewerId])
   @@index([createdAt])
+}
+
+model Payout {
+  id            String   @id @default(uuid())
+  amount        Int      // net payout to actor in cents
+  status        String   @default("PENDING") // "PENDING" | "PAID" | "FAILED"
+  payoutMethod  String?
+  payoutDetails String?
+  reference     String?
+  actorId       String
+  actor         Actor    @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  tips          Tip[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([actorId])
 }
