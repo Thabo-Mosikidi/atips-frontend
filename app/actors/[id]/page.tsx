@@ -3,12 +3,18 @@ import ViewerJourney from "./ViewerJourney";
 async function getActor(id: string) {
   try {
     const { prisma } = await import("@/lib/prisma");
-    return prisma.actor.findUnique({
+    const actor = await prisma.actor.findUnique({
       where: { id },
     });
+
+    if (actor) {
+      return actor;
+    }
   } catch {
-    return null;
+    // Fall back to the local demo actor if Prisma is unavailable.
   }
+
+  return null;
 }
 
 export default async function ActorProfile({

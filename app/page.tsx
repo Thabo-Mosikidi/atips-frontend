@@ -2,23 +2,48 @@ export const dynamic = "force-dynamic";
 
 import Image from "next/image";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { actors as fallbackActors } from "@/data/actors";
 import TipBox from "./actors/[id]/TipBox";
 
 async function getActors(search?: string) {
-  return prisma.actor.findMany({
-    where: search
-      ? {
-          name: {
-            contains: search,
-            mode: "insensitive",
-          },
-        }
-      : undefined,
-    orderBy: {
-      number: "asc",
-    },
-  });
+  try {
+    const { prisma } = await import("@/lib/prisma");
+    const actors = await prisma.actor.findMany({
+      where: search
+        ? {
+            name: {
+              contains: search,
+              mode: "insensitive",
+            },
+          }
+        : undefined,
+      orderBy: {
+        number: "asc",
+      },
+    });
+
+    if (Array.isArray(actors) && actors.length > 0) {
+      return actors;
+    }
+  } catch {
+    // Fall back to the local demo dataset when Prisma is unavailable.
+  }
+
+  const normalized = fallbackActors.map((actor, index) => ({
+    id: actor.slug,
+    name: actor.name,
+    imageUrl: actor.imageUrl,
+    bio: actor.bio,
+    number: index + 1,
+  }));
+
+  const query = search?.trim().toLowerCase() ?? "";
+
+  return query
+    ? normalized.filter((actor) =>
+        actor.name.toLowerCase().includes(query)
+      )
+    : normalized;
 }
 
 export default async function HomePage({
