@@ -96,14 +96,14 @@ export default function RootLayout({
             </p>
 
             {/* Legal Links */}
-            <div className="flex justify-center gap-6 text-xs text-slate-400 border-t border-white/5 pt-6 max-w-xs mx-auto">
-              <Link href="/terms" className="hover:text-white transition">
+            <div className="flex justify-center flex-wrap gap-6 text-xs text-slate-200 font-medium border-t border-white/10 pt-6 max-w-md mx-auto">
+              <Link href="/terms" className="hover:text-[#C9A34E] underline decoration-white/20 underline-offset-4 transition">
                 Terms of Use
               </Link>
-              <Link href="/refund-policy" className="hover:text-white transition">
+              <Link href="/refund-policy" className="hover:text-[#C9A34E] underline decoration-white/20 underline-offset-4 transition">
                 Refund Policy
               </Link>
-              <Link href="/privacy" className="hover:text-white transition">
+              <Link href="/privacy" className="hover:text-[#C9A34E] underline decoration-white/20 underline-offset-4 transition">
                 Privacy Policy
               </Link>
             </div>

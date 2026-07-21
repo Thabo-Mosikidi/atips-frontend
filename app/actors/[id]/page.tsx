@@ -1,4 +1,5 @@
 import ViewerJourney from "./ViewerJourney";
+import { actors as fallbackActors } from "@/data/actors";
 
 async function getActor(id: string) {
   try {
@@ -11,7 +12,7 @@ async function getActor(id: string) {
       return actor;
     }
   } catch {
-    // Fall back to the local demo actor if Prisma is unavailable.
+    // Fall back to local actors dataset when Prisma is unavailable.
   }
 
   return null;
@@ -23,18 +24,23 @@ export default async function ActorProfile({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const actor = await getActor(id);
+  const dbActor = await getActor(id);
+
+  // Find matching local actor by slug/id or default to the first actor
+  const matched =
+    fallbackActors.find(
+      (a) => a.slug === id || a.name.toLowerCase() === id.toLowerCase()
+    ) ?? fallbackActors[0];
 
   const fallbackActor = {
-    id,
-    name: "Marina Vale",
-    role: "Featured Performer",
-    bio: "A charismatic performer whose screen presence leaves a lasting impression.",
-    bioShort: "Featured Performer",
-    bioFull:
-      "A charismatic performer whose screen presence leaves a lasting impression. This viewer journey is designed to feel instant, premium, and effortless after the credits roll.",
-    imageUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80",
+    id: matched.slug,
+    name: matched.name,
+    role: matched.role,
+    bio: matched.bio,
+    bioShort: matched.role,
+    bioFull: matched.bio,
+    imageUrl: matched.imageUrl,
   };
 
-  return <ViewerJourney actor={actor ?? fallbackActor} />;
+  return <ViewerJourney actor={dbActor ?? fallbackActor} />;
 }
