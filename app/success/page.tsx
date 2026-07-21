@@ -2,7 +2,6 @@
 
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 interface SuccessPageProps {
   searchParams: Promise<{
@@ -15,7 +14,6 @@ interface SuccessPageProps {
 
 export default function SuccessPage({ searchParams }: SuccessPageProps) {
   const params = use(searchParams);
-  const router = useRouter();
   const { actorId, actorName, amount, transactionId } = params;
 
   const [verifying, setVerifying] = useState(true);
