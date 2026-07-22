@@ -61,6 +61,19 @@ export default function TipBox({
 
   const closeConfirm = () => setConfirmOpen(false);
 
+  /* ================= SESSION ================= */
+  // Anonymous, session-based viewer token (no login) — persisted so repeat
+  // tips from the same browser link to one Viewer record.
+  const getSessionToken = () => {
+    if (typeof window === "undefined") return undefined;
+    let token = localStorage.getItem("atips_session");
+    if (!token) {
+      token = crypto.randomUUID();
+      localStorage.setItem("atips_session", token);
+    }
+    return token;
+  };
+
   /* ================= PAYMENT ================= */
   const startPayment = async () => {
     const numericAmount = Number(amount);
@@ -69,15 +82,18 @@ export default function TipBox({
     setConfirmOpen(false);
 
     try {
-      const res = await fetch("/api/checkout", {
+      // Use /api/tips: it creates the Transaction record and returns an
+      // approval URL carrying transactionId, so /success can capture and
+      // persist the Tip. (/api/checkout did neither.)
+      const res = await fetch("/api/tips", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           actorId,
-          actorName,
           amount: numericAmount,
+          sessionToken: getSessionToken(),
           source:
             window.location.pathname + window.location.search,
         }),
