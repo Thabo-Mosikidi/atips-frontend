@@ -71,7 +71,7 @@ export default async function HomePage({
       </div>
 
       {/* HERO SECTION WITH CLEAN VISUAL HIERARCHY */}
-      <section className="max-w-7xl mx-auto px-6 pt-16 pb-12 text-center space-y-6 relative z-10">
+      <section className="max-w-7xl mx-auto px-6 pt-16 pb-12 text-center space-y-6 relative z-10 animate-rise-in">
         <div className="space-y-3">
           <span className="inline-block text-xs uppercase tracking-[0.25em] text-[#C9A34E] font-semibold bg-[#C9A34E]/10 px-4 py-1.5 rounded-full border border-[#C9A34E]/25">
             {t(locale, "home.badge")}
@@ -120,8 +120,29 @@ export default async function HomePage({
         </div>
       </section>
 
+      {/* HOW IT WORKS — trust strip */}
+      <section className="max-w-5xl mx-auto px-6 pb-6 relative z-10">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            { n: "01", t: "Scan or search", d: "Find an actor via a QR code on-screen or our directory." },
+            { n: "02", t: "Tip or book", d: "Send a tip, or book private video calls & mentorship." },
+            { n: "03", t: "They receive 80%", d: "Most of every rand goes directly to the performer." },
+          ].map((s) => (
+            <div key={s.n} className="glass-panel rounded-2xl border border-white/10 p-5 text-left">
+              <span className="text-xs font-bold tracking-widest gold-text-gradient">{s.n}</span>
+              <h3 className="mt-2 text-sm font-bold text-white">{s.t}</h3>
+              <p className="mt-1 text-xs text-slate-400 leading-relaxed font-light">{s.d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* GRID SECTION */}
-      <section className="max-w-7xl mx-auto px-6 pb-24 relative z-10">
+      <section className="max-w-7xl mx-auto px-6 pt-6 pb-24 relative z-10">
+        <div className="flex items-center gap-3 mb-6">
+          <h2 className="text-lg font-bold text-white tracking-tight">Browse the directory</h2>
+          <div className="flex-1 gold-hairline" />
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
           {actors.map((actor) => (
             <div
