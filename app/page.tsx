@@ -188,18 +188,12 @@ export default async function HomePage({
                   </p>
                 </div>
 
-                <div className="space-y-2 pt-2">
+                <div className="pt-2">
                   <Link
                     href={`/actors/${actor.id}`}
                     className="block w-full text-center bg-gradient-to-r from-[#D90429] to-[#A60321] text-white py-2.5 text-sm rounded-xl font-semibold hover:from-[#ff1a3c] hover:to-[#b30026] transition-all duration-200 active:scale-[0.98] shadow-md shadow-red-950/30 red-glow-hover"
                   >
-                    Support & Tip Now
-                  </Link>
-                  <Link
-                    href={`/actors/${actor.id}`}
-                    className="block w-full text-center text-xs font-medium text-slate-400 hover:text-white transition duration-150 py-1"
-                  >
-                    View Details
+                    View Profile
                   </Link>
                 </div>
               </div>

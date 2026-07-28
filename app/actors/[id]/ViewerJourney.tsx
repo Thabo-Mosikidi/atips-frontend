@@ -1,38 +1,18 @@
-"use client";
-
 /**
- * ViewerJourney — the actor profile ("second page").
+ * ViewerJourney — the actor profile landing ("second page").
  *
- * Redesigned into a single cohesive, cinematic page rather than a cramped
- * 3-step wizard. Information appears exactly once:
- *   Hero (identity + live stats + CTAs) → About (bio, parsed highlights) →
- *   Tier 1 Support (inline tip) → Tier 2 Private Access (bookings).
- * Uses the shared design system (glass, gold/red glow, gradient text) and the
- * global header/footer in layout.tsx — no duplicate chrome.
+ * A clean, cinematic landing only: identity + story + two clear choices.
+ * The transactional flows live on their own pages so nothing is crammed here:
+ *   "Send a Tip"          → /actors/[id]/tip
+ *   "Book Private Access" → /actors/[id]/book
+ * Server component (no client JS needed); QR context is forwarded to the tip
+ * page via `query`.
  */
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
-import TierTwoAccess from "./TierTwoAccess";
+import Link from "next/link";
+import type { ProfileActor } from "@/lib/actors";
 
-type ActorData = {
-  id: string;
-  name: string;
-  role?: string | null;
-  bio?: string | null;
-  bioShort?: string | null;
-  bioFull?: string | null;
-  imageUrl: string;
-  isPremium?: boolean | null;
-};
-
-type ActorStats = { tipsCount: number; totalAmount: number };
-
-const PRESET_AMOUNTS = [10, 25, 50, 100];
-const MIN_AMOUNT = 10;
-const MAX_AMOUNT = 10000;
-
-/** Split the seeded bio format ("intro… Key Highlights: - a - b") into parts. */
 function parseBio(raw: string): { intro: string; highlights: string[] } {
   const marker = "Key Highlights:";
   const idx = raw.indexOf(marker);
@@ -47,110 +27,18 @@ function parseBio(raw: string): { intro: string; highlights: string[] } {
   return { intro, highlights };
 }
 
-export default function ViewerJourney({ actor }: { actor: ActorData }) {
-  const [tipAmount, setTipAmount] = useState("25");
-  const [customAmount, setCustomAmount] = useState("");
-  const [error, setError] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [stats, setStats] = useState<ActorStats | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    fetch(`/api/actors/${actor.id}/tips`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (alive && d?.stats) setStats(d.stats);
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [actor.id]);
-
-  const effectiveAmount = useMemo(() => {
-    const selected = customAmount.trim() ? customAmount : tipAmount;
-    return Number(selected) || 0;
-  }, [customAmount, tipAmount]);
-
-  const usdAmount = useMemo(() => (effectiveAmount / 18).toFixed(2), [effectiveAmount]);
-
-  const { intro, highlights } = useMemo(
-    () => parseBio(actor.bioFull || actor.bio || ""),
-    [actor]
-  );
-
-  const scrollTo = (id: string) =>
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-
-  const validateAmount = (value: string) => {
-    const numeric = Number(value);
-    if (!value || Number.isNaN(numeric)) {
-      setError("Please choose or enter a valid amount.");
-      return false;
-    }
-    if (numeric < MIN_AMOUNT) {
-      setError(`Minimum tip amount is R${MIN_AMOUNT}.`);
-      return false;
-    }
-    if (numeric > MAX_AMOUNT) {
-      setError(`Maximum tip amount is R${MAX_AMOUNT}.`);
-      return false;
-    }
-    setError("");
-    return true;
-  };
-
-  const triggerPayment = async () => {
-    const amount = customAmount.trim() ? customAmount : tipAmount;
-    if (!validateAmount(amount)) {
-      scrollTo("tier-1");
-      return;
-    }
-
-    setIsProcessing(true);
-    setError("");
-
-    try {
-      let sessionToken = sessionStorage.getItem("atips_session");
-      if (!sessionToken) {
-        sessionToken = crypto.randomUUID();
-        sessionStorage.setItem("atips_session", sessionToken);
-      }
-
-      const urlParams = new URLSearchParams(window.location.search);
-      const showId = urlParams.get("showId") || undefined;
-      const episodeId = urlParams.get("episodeId") || undefined;
-      const qrCodeId = urlParams.get("qrCodeId") || undefined;
-
-      const response = await fetch("/api/tips", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          actorId: actor.id,
-          amount: Number(amount),
-          sessionToken,
-          showId,
-          episodeId,
-          qrCodeId,
-          source: window.location.pathname + window.location.search,
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to initialize payment.");
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error("No checkout URL returned from payment gateway.");
-      }
-    } catch (err) {
-      console.error(err);
-      setError(err instanceof Error ? err.message : "An error occurred. Please try again.");
-      setIsProcessing(false);
-    }
-  };
-
+export default function ViewerJourney({
+  actor,
+  query,
+}: {
+  actor: ProfileActor;
+  query?: string;
+}) {
+  const { intro, highlights } = parseBio(actor.bioFull || actor.bio || "");
   const role = actor.role || actor.bioShort || "Featured Performer";
+  const firstName = actor.name.split(" ")[0];
+  const tipHref = `/actors/${actor.id}/tip${query ? `?${query}` : ""}`;
+  const bookHref = `/actors/${actor.id}/book`;
 
   return (
     <main className="relative overflow-hidden bg-[#0A1F44] text-white">
@@ -184,7 +72,7 @@ export default function ViewerJourney({ actor }: { actor: ActorData }) {
             </div>
           </div>
 
-          {/* IDENTITY + STATS + CTAS */}
+          {/* IDENTITY + CHOICES */}
           <div className="space-y-6 animate-rise-in rise-delay-1">
             <div className="space-y-3">
               <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.3em] text-[#C9A34E] bg-[#C9A34E]/10 border border-[#C9A34E]/25 px-3 py-1.5 rounded-full">
@@ -197,50 +85,49 @@ export default function ViewerJourney({ actor }: { actor: ActorData }) {
                 </svg>
               </h1>
               <p className="text-sm sm:text-base text-slate-300 font-light max-w-xl leading-relaxed">
-                Support {actor.name.split(" ")[0]} directly — 80% of every tip goes straight to the artist, or book private one-on-one access below.
+                Reward {firstName} for the work you love — 80% of every tip goes straight to the artist — or book private one-on-one access.
               </p>
             </div>
 
-            {/* LIVE STATS */}
-            <div className="flex flex-wrap gap-3">
-              <div className="flex-1 min-w-[120px] rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <span className="block text-2xl font-extrabold leading-none">
-                  {stats ? stats.tipsCount : "—"}
+            {/* TWO CLEAR CHOICES → dedicated pages */}
+            <div className="grid sm:grid-cols-2 gap-4 pt-1">
+              <Link
+                href={tipHref}
+                className="group rounded-3xl border border-[#D90429]/30 bg-gradient-to-br from-[#D90429]/15 to-transparent p-5 transition-all duration-300 hover:border-[#D90429]/60 red-glow-hover"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl">💛</span>
+                  <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#D90429] bg-[#D90429]/10 px-2 py-1 rounded-full">
+                    Tier 1
+                  </span>
+                </div>
+                <h3 className="mt-3 text-lg font-bold text-white">Send a Tip</h3>
+                <p className="mt-1 text-xs text-slate-400 leading-relaxed">
+                  A quick thank-you from R10. Fast, secure, and 80% goes straight to {firstName}.
+                </p>
+                <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-white group-hover:gap-2 transition-all">
+                  Tip now <span aria-hidden>→</span>
                 </span>
-                <span className="block text-[10px] uppercase tracking-widest text-slate-400 mt-1.5">
-                  Supporters
-                </span>
-              </div>
-              <div className="flex-1 min-w-[120px] rounded-2xl border border-[#C9A34E]/25 bg-[#C9A34E]/5 px-4 py-3">
-                <span className="block text-2xl font-extrabold leading-none gold-text-gradient">
-                  R{stats ? stats.totalAmount.toLocaleString() : "—"}
-                </span>
-                <span className="block text-[10px] uppercase tracking-widest text-slate-400 mt-1.5">
-                  Raised by fans
-                </span>
-              </div>
-              <div className="flex-1 min-w-[120px] rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <span className="block text-2xl font-extrabold leading-none">80%</span>
-                <span className="block text-[10px] uppercase tracking-widest text-slate-400 mt-1.5">
-                  Goes to artist
-                </span>
-              </div>
-            </div>
+              </Link>
 
-            {/* DUAL CTAS */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-1">
-              <button
-                onClick={() => scrollTo("tier-1")}
-                className="flex-1 rounded-2xl bg-gradient-to-r from-[#D90429] to-[#A60321] px-6 py-4 text-sm font-bold text-white hover:from-[#ff1a3c] hover:to-[#b30026] shadow-lg shadow-red-950/30 transition active:scale-[0.98] red-glow-hover"
+              <Link
+                href={bookHref}
+                className="group rounded-3xl border border-[#C9A34E]/30 bg-gradient-to-br from-[#C9A34E]/15 to-transparent p-5 transition-all duration-300 hover:border-[#C9A34E]/60 gold-glow-hover"
               >
-                Send a Tip
-              </button>
-              <button
-                onClick={() => scrollTo("tier2-access")}
-                className="flex-1 rounded-2xl border border-[#C9A34E]/40 bg-[#C9A34E]/10 px-6 py-4 text-sm font-bold text-[#E6C878] hover:bg-[#C9A34E]/20 transition active:scale-[0.98] gold-glow-hover"
-              >
-                Book Private Access
-              </button>
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl">✨</span>
+                  <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#C9A34E] bg-[#C9A34E]/10 px-2 py-1 rounded-full">
+                    Tier 2
+                  </span>
+                </div>
+                <h3 className="mt-3 text-lg font-bold text-white">Book Private Access</h3>
+                <p className="mt-1 text-xs text-slate-400 leading-relaxed">
+                  Video calls, mentorship & industry advice — exclusive one-on-one time with {firstName}.
+                </p>
+                <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#E6C878] group-hover:gap-2 transition-all">
+                  See experiences <span aria-hidden>→</span>
+                </span>
+              </Link>
             </div>
           </div>
         </div>
@@ -251,7 +138,7 @@ export default function ViewerJourney({ actor }: { actor: ActorData }) {
       </div>
 
       {/* ================= ABOUT (single source of bio) ================= */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-8 animate-rise-in">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-8 pb-16 animate-rise-in">
         <div className="grid gap-8 lg:grid-cols-[1fr_1fr]">
           <div className="space-y-3">
             <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#C9A34E]">
@@ -282,130 +169,6 @@ export default function ViewerJourney({ actor }: { actor: ActorData }) {
           )}
         </div>
       </section>
-
-      {/* ================= TIER 1 — SUPPORT (inline tip) ================= */}
-      <section id="tier-1" className="max-w-6xl mx-auto px-4 sm:px-6 py-8 scroll-mt-24">
-        <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-white/10 shadow-[0_24px_80px_rgba(2,6,23,0.6)]">
-          <div className="flex items-center justify-between mb-6">
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#D90429]">
-                Tier 1 · Show Support
-              </span>
-              <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                Send {actor.name.split(" ")[0]} a tip
-              </h2>
-            </div>
-            <span className="text-2xl">💛</span>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-            {/* AMOUNT SELECTION */}
-            <div className="space-y-4">
-              <div className="grid grid-cols-4 gap-2 sm:gap-3">
-                {PRESET_AMOUNTS.map((amount) => {
-                  const selected = String(amount) === tipAmount && !customAmount;
-                  return (
-                    <button
-                      key={amount}
-                      onClick={() => {
-                        setTipAmount(String(amount));
-                        setCustomAmount("");
-                        setError("");
-                      }}
-                      className={`rounded-2xl border px-2 py-4 text-center transition-all duration-300 ${
-                        selected
-                          ? "border-[#C9A34E] bg-[#C9A34E]/10 text-white gold-glow-active"
-                          : "border-white/10 bg-white/5 text-slate-300 hover:border-white/20 hover:bg-white/10"
-                      }`}
-                    >
-                      <span className="block text-xl font-extrabold">R{amount}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4 space-y-2">
-                <span className="block text-[10px] font-bold uppercase tracking-widest text-[#C9A34E]">
-                  Or enter a custom amount (ZAR)
-                </span>
-                <div className="relative flex items-center">
-                  <span className="absolute left-4 text-lg font-semibold text-slate-400">R</span>
-                  <input
-                    type="number"
-                    min={MIN_AMOUNT}
-                    max={MAX_AMOUNT}
-                    value={customAmount}
-                    onChange={(e) => {
-                      setCustomAmount(e.target.value);
-                      setError("");
-                    }}
-                    placeholder="Enter amount"
-                    className="w-full rounded-xl border border-white/10 bg-[#0A1F44] pl-10 pr-4 py-3.5 text-lg font-semibold text-white focus:outline-none focus:ring-2 focus:ring-[#C9A34E]/50 focus:border-[#C9A34E] transition placeholder:text-slate-500"
-                  />
-                </div>
-              </div>
-
-              {error && (
-                <p className="text-xs text-red-400 font-medium bg-red-950/20 border border-red-500/10 px-3 py-2 rounded-xl">
-                  {error}
-                </p>
-              )}
-            </div>
-
-            {/* SUMMARY + PAY */}
-            <div className="rounded-2xl border border-white/10 bg-[#0b2046]/60 p-5 flex flex-col justify-between shadow-inner">
-              <div className="space-y-3">
-                <div className="flex items-end justify-between">
-                  <div>
-                    <span className="text-[10px] uppercase tracking-wider text-slate-400">You give</span>
-                    <p className="text-3xl font-extrabold text-white leading-none mt-1">R{effectiveAmount}</p>
-                  </div>
-                  <span className="text-xs text-slate-400">≈ ${usdAmount}</span>
-                </div>
-                <div className="gold-hairline" />
-                <div className="space-y-1.5 text-xs">
-                  <div className="flex justify-between text-[#E6C878]">
-                    <span>Direct to {actor.name.split(" ")[0]} (80%)</span>
-                    <span className="font-bold">R{(effectiveAmount * 0.8).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-slate-400">
-                    <span>Platform &amp; hosting (20%)</span>
-                    <span>R{(effectiveAmount * 0.2).toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-5 space-y-2">
-                <button
-                  onClick={triggerPayment}
-                  disabled={isProcessing}
-                  className="w-full rounded-xl bg-gradient-to-r from-[#D90429] to-[#A60321] px-6 py-4 text-sm font-bold text-white hover:from-[#ff1a3c] hover:to-[#b30026] shadow-lg shadow-red-950/30 transition disabled:cursor-wait disabled:opacity-75 red-glow-hover flex items-center justify-center gap-2"
-                >
-                  {isProcessing ? (
-                    <>
-                      <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Redirecting…
-                    </>
-                  ) : (
-                    "Tip with PayPal"
-                  )}
-                </button>
-                <p className="text-[10px] text-slate-500 text-center">
-                  🔒 Secured by PayPal · Visa • Mastercard • AMEX
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ================= TIER 2 — PRIVATE ACCESS ================= */}
-      <TierTwoAccess actorId={actor.id} actorName={actor.name} />
-
-      <div className="h-12" />
     </main>
   );
 }

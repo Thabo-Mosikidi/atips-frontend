@@ -49,9 +49,11 @@ function getSessionToken(): string {
 export default function TierTwoAccess({
   actorId,
   actorName,
+  standalone = false,
 }: {
   actorId: string;
   actorName: string;
+  standalone?: boolean;
 }) {
   const [services, setServices] = useState<Service[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -135,8 +137,24 @@ export default function TierTwoAccess({
     }
   };
 
-  // Nothing published yet → render nothing (keeps the profile clean).
-  if (!loaded || services.length === 0) return null;
+  if (!loaded) return null; // still loading
+
+  // Nothing published yet. On its own page, show an empty state; when embedded
+  // elsewhere, render nothing to keep the host clean.
+  if (services.length === 0) {
+    if (!standalone) return null;
+    return (
+      <div className="max-w-6xl w-full mx-auto px-4 sm:px-6">
+        <div className="glass-panel rounded-3xl p-8 border border-white/10 text-center">
+          <span className="text-3xl">✨</span>
+          <h2 className="mt-3 text-lg font-bold text-white">No private access yet</h2>
+          <p className="mt-1 text-sm text-slate-400">
+            {actorName} hasn&apos;t published any Tier 2 experiences right now. Check back soon.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div id="tier2-access" className="relative max-w-6xl w-full mx-auto px-4 sm:px-6 mt-2 scroll-mt-24">
