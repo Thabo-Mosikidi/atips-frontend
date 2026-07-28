@@ -8,11 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "db:push": "prisma db push",
-    "db:push:dev": "node -r dotenv/config ./node_modules/prisma/build/index.js db push --env-file=.env.development",
-    "db:push:staging": "node -r dotenv/config ./node_modules/prisma/build/index.js db push --env-file=.env.staging",
+    "db:push:dev": "cross-env DOTENV_CONFIG_PATH=.env.development node -r dotenv/config ./node_modules/prisma/build/index.js db push",
+    "db:push:staging": "cross-env DOTENV_CONFIG_PATH=.env.staging node -r dotenv/config ./node_modules/prisma/build/index.js db push",
     "db:seed": "prisma db seed",
-    "db:seed:dev": "node -r dotenv/config ./node_modules/ts-node/dist/bin.js prisma/seed.ts --env-file=.env.development",
-    "db:seed:staging": "node -r dotenv/config ./node_modules/ts-node/dist/bin.js prisma/seed.ts --env-file=.env.staging"
+    "db:seed:dev": "cross-env DOTENV_CONFIG_PATH=.env.development node -r dotenv/config ./node_modules/ts-node/dist/bin.js prisma/seed.ts",
+    "db:seed:staging": "cross-env DOTENV_CONFIG_PATH=.env.staging node -r dotenv/config ./node_modules/ts-node/dist/bin.js prisma/seed.ts"
   },
   "dependencies": {
     "@paypal/react-paypal-js": "^9.1.1",
@@ -32,6 +32,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.27",
+    "cross-env": "^10.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "postcss": "^8.5.6",

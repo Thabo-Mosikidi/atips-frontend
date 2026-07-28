@@ -9,12 +9,22 @@ interface SuccessPageProps {
     actorName?: string;
     amount?: string;
     transactionId?: string;
+    type?: string; // "tip" (default) | "booking" | "promotion"
   }>;
 }
+
+// Each payment type captures against its own status endpoint, and a
+// successful capture resolves to a different terminal status.
+const CAPTURE_CONFIG: Record<string, { endpoint: string; okStatus: string }> = {
+  tip: { endpoint: "/api/tips/status", okStatus: "COMPLETED" },
+  booking: { endpoint: "/api/bookings/status", okStatus: "CONFIRMED" },
+  promotion: { endpoint: "/api/promotions/status", okStatus: "ACTIVE" },
+};
 
 export default function SuccessPage({ searchParams }: SuccessPageProps) {
   const params = use(searchParams);
   const { actorId, actorName, amount, transactionId } = params;
+  const type = params.type || "tip";
 
   const [verifying, setVerifying] = useState(true);
   const [success, setSuccess] = useState(false);
@@ -28,9 +38,11 @@ export default function SuccessPage({ searchParams }: SuccessPageProps) {
       return;
     }
 
+    const cfg = CAPTURE_CONFIG[type] ?? CAPTURE_CONFIG.tip;
+
     const verifyTransaction = async () => {
       try {
-        const response = await fetch("/api/tips/status", {
+        const response = await fetch(cfg.endpoint, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -40,9 +52,9 @@ export default function SuccessPage({ searchParams }: SuccessPageProps) {
 
         const data = await response.json();
 
-        if (response.ok && data.status === "COMPLETED") {
+        if (response.ok && data.status === cfg.okStatus) {
           setSuccess(true);
-          setTipDetails(data.tip);
+          setTipDetails(data.tip ?? data.booking ?? data.promotion ?? null);
         } else {
           setError(data.error || "Could not verify your payment capture status.");
         }
@@ -55,7 +67,7 @@ export default function SuccessPage({ searchParams }: SuccessPageProps) {
     };
 
     verifyTransaction();
-  }, [transactionId]);
+  }, [transactionId, type]);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#0A1F44] text-white flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">

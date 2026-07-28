@@ -128,6 +128,79 @@ async function main() {
   });
 
   console.log("✅ Seeded 15 real South African actors successfully");
+
+  // ---- Tier 2 Access + booking sample data (first 3 actors) ----
+  const featured = await prisma.actor.findMany({
+    orderBy: { number: "asc" },
+    take: 3,
+  });
+
+  const now = Date.now();
+  const hour = 60 * 60 * 1000;
+
+  for (let i = 0; i < featured.length; i++) {
+    const actor = featured[i];
+
+    const services = await Promise.all([
+      prisma.service.create({
+        data: {
+          actorId: actor.id,
+          type: "VIDEO_CALL",
+          title: "15-min Private Video Call",
+          description: `A one-on-one video call with ${actor.name}. Say hi, ask a question, get a shout-out.`,
+          price: 50000, // R500
+          durationMin: 15,
+        },
+      }),
+      prisma.service.create({
+        data: {
+          actorId: actor.id,
+          type: "MENTORSHIP",
+          title: "45-min Acting Mentorship",
+          description: `Career and craft mentorship session with ${actor.name}.`,
+          price: 120000, // R1200
+          durationMin: 45,
+        },
+      }),
+      prisma.service.create({
+        data: {
+          actorId: actor.id,
+          type: "INDUSTRY_ADVICE",
+          title: "30-min Industry Advice",
+          description: `Breaking into the SA screen industry — practical advice from ${actor.name}.`,
+          price: 80000, // R800
+          durationMin: 30,
+        },
+      }),
+    ]);
+
+    // A few future availability slots (next few days) for the video call.
+    for (let d = 1; d <= 3; d++) {
+      const start = new Date(now + d * 24 * hour + 18 * hour); // ~18:00 each day
+      await prisma.availabilitySlot.create({
+        data: {
+          actorId: actor.id,
+          serviceId: services[0].id,
+          startTime: start,
+          endTime: new Date(start.getTime() + services[0].durationMin * 60 * 1000),
+        },
+      });
+    }
+  }
+
+  // Make the first actor "premium" so prioritized placement is visible.
+  if (featured[0]) {
+    await prisma.actor.update({
+      where: { id: featured[0].id },
+      data: {
+        isPremium: true,
+        premiumUntil: new Date(now + 30 * 24 * hour),
+        priorityRank: 10,
+      },
+    });
+  }
+
+  console.log("✅ Seeded Tier 2 services, availability slots, and 1 premium actor");
 }
 
 main()

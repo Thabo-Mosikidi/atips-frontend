@@ -17,15 +17,27 @@ model Actor {
   imageUrl  String
   number    Int?
   isActive  Boolean  @default(true)
+
+  // Premium Profiles (#2) + Promotional Services (#7) — one-time timeboxed boosts.
+  // `priorityRank` drives ordering in browse/search (higher = shown first).
+  isPremium    Boolean   @default(false)
+  premiumUntil DateTime?
+  priorityRank Int       @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tips      Tip[]
-  qrs       QRCode[]
-  payouts   Payout[]
-  episodes  EpisodeActor[]
+  tips       Tip[]
+  qrs        QRCode[]
+  payouts    Payout[]
+  episodes   EpisodeActor[]
+  services   Service[]
+  bookings   Booking[]
+  slots      AvailabilitySlot[]
+  promotions Promotion[]
 
   @@index([isActive])
+  @@index([priorityRank])
 }
 
 model Show {
@@ -97,6 +109,7 @@ model Viewer {
 
   tips         Tip[]
   transactions Transaction[]
+  bookings     Booking[]
 }
 
 model Transaction {
@@ -106,6 +119,9 @@ model Transaction {
   gateway          String   @default("PAYPAL") // "PAYPAL" or others
   gatewayReference String   @unique
   status           String   // "PENDING" | "COMPLETED" | "FAILED" | "CANCELLED"
+  // What this payment is for — lets tips, Tier 2 bookings, and promo boosts
+  // all share one gateway/transaction pipeline.
+  type             String   @default("TIP") // "TIP" | "BOOKING" | "PROMOTION"
   viewerId         String?
   viewer           Viewer?  @relation(fields: [viewerId], references: [id], onDelete: SetNull)
   actorId          String
@@ -116,9 +132,12 @@ model Transaction {
   updatedAt        DateTime @updatedAt
 
   tip              Tip?
+  booking          Booking?
+  promotion        Promotion?
 
   @@index([viewerId])
   @@index([actorId])
+  @@index([type])
 }
 
 model Tip {
@@ -159,4 +178,112 @@ model Payout {
   updatedAt     DateTime @updatedAt
 
   @@index([actorId])
+}
+
+// =====================================================================
+// TIER 2 ACCESS (Phase 1 #1, P0) + SCHEDULED BOOKINGS (Phase 2 #6)
+// ---------------------------------------------------------------------
+// These share ONE data model on purpose: a `Service` is a purchasable
+// Tier 2 offering (video call / mentorship / industry advice); a
+// `Booking` is a fan buying that Service for a specific time slot. The
+// booking system (#6) is therefore just Service + AvailabilitySlot +
+// Booking working together — not a separate subsystem bolted on later.
+// Payment reuses the existing PayPal Orders + Transaction pipeline
+// (charge-in-full at booking). Delivery is a stored meeting link.
+// =====================================================================
+
+model Service {
+  id          String   @id @default(uuid())
+  actorId     String
+  actor       Actor    @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  type        String   // "VIDEO_CALL" | "MENTORSHIP" | "INDUSTRY_ADVICE"
+  title       String
+  description String?
+  price       Int      // ZAR cents
+  durationMin Int      @default(30)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  bookings    Booking[]
+  slots       AvailabilitySlot[]
+
+  @@index([actorId])
+  @@index([isActive])
+}
+
+model AvailabilitySlot {
+  id        String    @id @default(uuid())
+  actorId   String
+  actor     Actor     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  serviceId String?
+  service   Service?  @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  startTime DateTime
+  endTime   DateTime
+  isBooked  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  booking   Booking?
+
+  @@index([actorId])
+  @@index([startTime])
+  @@index([isBooked])
+}
+
+model Booking {
+  id                String            @id @default(uuid())
+  serviceId         String
+  service           Service           @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  actorId           String
+  actor             Actor             @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  viewerId          String?
+  viewer            Viewer?           @relation(fields: [viewerId], references: [id], onDelete: SetNull)
+  // Optional link to a pre-defined availability slot; ad-hoc bookings may
+  // carry only scheduledAt. One slot maps to at most one booking.
+  slotId            String?           @unique
+  slot              AvailabilitySlot? @relation(fields: [slotId], references: [id], onDelete: SetNull)
+  scheduledAt       DateTime
+  status            String            @default("PENDING_PAYMENT") // PENDING_PAYMENT | CONFIRMED | COMPLETED | CANCELLED | REFUNDED
+  amount            Int               // gross ZAR cents
+  actorAmount       Int               // 80% to actor
+  platformAmount    Int               // 20% to platform
+  currency          String            @default("ZAR")
+  // Delivery: link attached (admin/actor) once the booking is confirmed.
+  meetingUrl        String?
+  // Fan contact — no login, so we capture how to reach them for the session.
+  contactName       String?
+  contactEmail      String?
+  transactionId     String?           @unique
+  transaction       Transaction?      @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  readableReference String?           @unique
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([actorId])
+  @@index([viewerId])
+  @@index([scheduledAt])
+  @@index([status])
+}
+
+// Premium placement (#2) and promotional boosts (#7) — one-time timeboxed
+// purchases through the same Transaction pipeline. Activating one sets the
+// Actor's premium flag / priorityRank for the window between startsAt/endsAt.
+model Promotion {
+  id            String       @id @default(uuid())
+  actorId       String
+  actor         Actor        @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  type          String       // "PREMIUM_PLACEMENT" | "PROMOTIONAL_BOOST"
+  amount        Int          // ZAR cents
+  currency      String       @default("ZAR")
+  startsAt      DateTime     @default(now())
+  endsAt        DateTime
+  status        String       @default("PENDING") // PENDING | ACTIVE | EXPIRED | CANCELLED
+  transactionId String?      @unique
+  transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([actorId])
+  @@index([status])
 }

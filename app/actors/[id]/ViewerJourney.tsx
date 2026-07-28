@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import TierTwoAccess from "./TierTwoAccess";
 
 type ActorData = {
   id: string;
@@ -404,6 +405,9 @@ export default function ViewerJourney({ actor }: { actor: ActorData }) {
           </div>
         </div>
       </div>
+
+      {/* TIER 2 ACCESS — private video calls, mentorship, industry advice */}
+      <TierTwoAccess actorId={actor.id} actorName={actor.name} />
     </main>
   );
 }

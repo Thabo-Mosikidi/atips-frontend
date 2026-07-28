@@ -128,51 +128,83 @@ export async function POST(req: NextRequest): Promise<Response> {
       }
     }
 
-    // Process and record Tip split if COMPLETED
+    // Record the completed payment. Which record we finalise depends on what
+    // the payment was for — tips, Tier 2 bookings and promo boosts all flow
+    // through this one verified webhook.
     if (paypalStatus === "COMPLETED") {
       const actor = await prisma.actor.findUnique({
         where: { id: transaction.actorId },
       });
-
       const actorName = actor ? actor.name : "actor";
-      const readableReference = `${slugify(actorName)}_atips_${transaction.id.split("-")[0]}`;
-
       const grossAmount = transaction.amount;
       const actorAmount = Math.round(grossAmount * 0.8);
       const platformAmount = grossAmount - actorAmount;
 
       await prisma.$transaction(async (tx) => {
-        // Check for duplicate tip entry
-        const existingTip = await tx.tip.findUnique({
-          where: { transactionId: transaction.id },
-        });
-
-        if (existingTip) return;
-
-        // Update transaction status
         await tx.transaction.update({
           where: { id: transaction.id },
           data: { status: "COMPLETED" },
         });
 
-        // Save tip split
-        await tx.tip.create({
-          data: {
-            id: crypto.randomUUID(),
-            amount: grossAmount,
-            actorAmount,
-            platformAmount,
-            currency: transaction.currency,
-            status: "success",
-            actorId: transaction.actorId,
-            viewerId: transaction.viewerId,
-            transactionId: transaction.id,
-            readableReference,
-          },
-        });
+        if (transaction.type === "BOOKING") {
+          const booking = await tx.booking.findUnique({
+            where: { transactionId: transaction.id },
+          });
+          if (!booking || booking.status === "CONFIRMED") return;
+          if (booking.slotId) {
+            await tx.availabilitySlot.update({
+              where: { id: booking.slotId },
+              data: { isBooked: true },
+            });
+          }
+          await tx.booking.update({
+            where: { id: booking.id },
+            data: {
+              status: "CONFIRMED",
+              readableReference: `${slugify(actorName)}_booking_${transaction.id.split("-")[0]}`,
+            },
+          });
+        } else if (transaction.type === "PROMOTION") {
+          const promo = await tx.promotion.findUnique({
+            where: { transactionId: transaction.id },
+          });
+          if (!promo || promo.status === "ACTIVE") return;
+          await tx.promotion.update({
+            where: { id: promo.id },
+            data: { status: "ACTIVE" },
+          });
+          await tx.actor.update({
+            where: { id: transaction.actorId },
+            data: {
+              isPremium: true,
+              premiumUntil: promo.endsAt,
+              priorityRank: { increment: 1 },
+            },
+          });
+        } else {
+          // Default: TIP
+          const existingTip = await tx.tip.findUnique({
+            where: { transactionId: transaction.id },
+          });
+          if (existingTip) return;
+          await tx.tip.create({
+            data: {
+              id: crypto.randomUUID(),
+              amount: grossAmount,
+              actorAmount,
+              platformAmount,
+              currency: transaction.currency,
+              status: "success",
+              actorId: transaction.actorId,
+              viewerId: transaction.viewerId,
+              transactionId: transaction.id,
+              readableReference: `${slugify(actorName)}_atips_${transaction.id.split("-")[0]}`,
+            },
+          });
+        }
       });
 
-      console.log("✅ Webhook processed and saved tip for actor:", actorName);
+      console.log(`✅ Webhook processed ${transaction.type} for actor:`, actorName);
       return NextResponse.json({ success: true });
     }
 

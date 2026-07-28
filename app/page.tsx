@@ -16,9 +16,13 @@ async function getActors(search?: string) {
             },
           }
         : undefined,
-      orderBy: {
-        number: "asc",
-      },
+      // Premium Profiles (#2) / Promotional boosts (#7): prioritized placement.
+      // Boosted actors surface first, then by original directory number.
+      orderBy: [
+        { priorityRank: "desc" },
+        { isPremium: "desc" },
+        { number: "asc" },
+      ],
     });
 
     if (Array.isArray(actors) && actors.length > 0) {
@@ -136,6 +140,12 @@ export default async function HomePage({
                 {actor.number && (
                   <span className="absolute top-4 left-4 bg-[#0A1F44]/80 text-[#C9A34E] text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full border border-[#C9A34E]/30 backdrop-blur-sm">
                     #{actor.number}
+                  </span>
+                )}
+
+                {"isPremium" in actor && actor.isPremium && (
+                  <span className="absolute top-4 right-4 bg-gradient-to-r from-[#C9A34E] to-[#E6C878] text-[#0A1F44] text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full shadow-md backdrop-blur-sm">
+                    ★ Premium
                   </span>
                 )}
               </div>
