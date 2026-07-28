@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { actors as fallbackActors } from "@/data/actors";
+import { t, DEFAULT_LOCALE } from "@/lib/i18n";
 
 async function getActors(search?: string) {
   try {
@@ -57,6 +58,7 @@ export default async function HomePage({
   const params = await searchParams;
   const search = params?.search ?? "";
   const actors = await getActors(search);
+  const locale = DEFAULT_LOCALE; // TODO: derive from a locale switcher / Accept-Language
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#0A1F44]">
@@ -72,13 +74,14 @@ export default async function HomePage({
       <section className="max-w-7xl mx-auto px-6 pt-16 pb-12 text-center space-y-6 relative z-10">
         <div className="space-y-3">
           <span className="inline-block text-xs uppercase tracking-[0.25em] text-[#C9A34E] font-semibold bg-[#C9A34E]/10 px-4 py-1.5 rounded-full border border-[#C9A34E]/25">
-            QR Tipping Directory
+            {t(locale, "home.badge")}
           </span>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight leading-tight max-w-4xl mx-auto">
-            Directly Reward the Talents You <span className="red-text-gradient font-extrabold">Value</span>
+            {t(locale, "home.heroTitle")}{" "}
+            <span className="red-text-gradient font-extrabold">{t(locale, "home.heroTitleAccent")}</span>
           </h1>
           <p className="text-base md:text-lg text-slate-300 max-w-2xl mx-auto font-light leading-relaxed">
-            Scan a QR code during screen credits or search our directory to tip your favorite South African actors. 80% goes directly to them.
+            {t(locale, "home.heroSubtitle")}
           </p>
         </div>
 
@@ -93,7 +96,7 @@ export default async function HomePage({
                 type="text"
                 name="search"
                 defaultValue={search}
-                placeholder="Search actors by name..."
+                placeholder={t(locale, "home.searchPlaceholder")}
                 className="w-full bg-transparent border-0 text-white placeholder-slate-400 focus:outline-none focus:ring-0 text-sm ml-2.5"
               />
             </div>

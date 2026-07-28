@@ -201,6 +201,14 @@ async function main() {
   }
 
   console.log("✅ Seeded Tier 2 services, availability slots, and 1 premium actor");
+
+  // ---- Broadcaster SDK demo partner (#8) ----
+  await prisma.partner.upsert({
+    where: { apiKey: "demo_partner_key_2026" },
+    update: { isActive: true },
+    create: { name: "Demo Broadcaster", apiKey: "demo_partner_key_2026", isActive: true },
+  });
+  console.log("✅ Seeded demo broadcaster partner (apiKey: demo_partner_key_2026)");
 }
 
 main()

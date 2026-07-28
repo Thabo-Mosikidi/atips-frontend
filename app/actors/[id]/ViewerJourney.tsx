@@ -13,7 +13,11 @@ type ActorData = {
   bioShort?: string | null;
   bioFull?: string | null;
   imageUrl: string;
+  isPremium?: boolean | null;
 };
+
+type ActorStats = { tipsCount: number; totalAmount: number };
+type ServiceSummary = { count: number; minPrice: number };
 
 type Step = "profile" | "tip" | "checkout";
 
@@ -27,6 +31,34 @@ export default function ViewerJourney({ actor }: { actor: ActorData }) {
   const [customAmount, setCustomAmount] = useState("");
   const [error, setError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [stats, setStats] = useState<ActorStats | null>(null);
+  const [servicesSummary, setServicesSummary] = useState<ServiceSummary | null>(null);
+
+  // Social proof + Tier 2 teaser data for the profile panel.
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/actors/${actor.id}/tips`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (alive && d?.stats) setStats(d.stats);
+      })
+      .catch(() => {});
+    fetch(`/api/actors/${actor.id}/services`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!alive || !Array.isArray(d?.services) || d.services.length === 0) return;
+        const prices = d.services.map((s: { price: number }) => s.price);
+        setServicesSummary({ count: d.services.length, minPrice: Math.min(...prices) });
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [actor.id]);
+
+  const scrollToTier2 = () => {
+    document.getElementById("tier2-access")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const effectiveAmount = useMemo(() => {
     const selected = customAmount.trim() ? customAmount : tipAmount;
@@ -375,7 +407,7 @@ export default function ViewerJourney({ actor }: { actor: ActorData }) {
           <div className="mt-8 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
             
             {/* LEFT PROFILE PANEL */}
-            <div className="bg-[#0b2046]/80 rounded-2xl border border-white/5 p-5 flex flex-col space-y-6 shadow-inner">
+            <div className="bg-[#0b2046]/80 rounded-2xl border border-white/5 p-5 flex flex-col space-y-5 shadow-inner">
               <div className="relative h-64 sm:h-72 w-full rounded-xl overflow-hidden border border-white/10 bg-slate-950">
                 <Image
                   src={actor.imageUrl}
@@ -386,16 +418,73 @@ export default function ViewerJourney({ actor }: { actor: ActorData }) {
                   className="object-cover object-[50%_18%]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0A1F44] via-transparent to-transparent" />
+
+                {actor.isPremium && (
+                  <span className="absolute top-3 right-3 bg-gradient-to-r from-[#C9A34E] to-[#E6C878] text-[#0A1F44] text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full shadow-md">
+                    ★ Premium
+                  </span>
+                )}
               </div>
 
               <div className="space-y-2">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-[#C9A34E]">
                   {actor.role || actor.bioShort || "Featured Performer"}
                 </span>
-                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight flex items-center gap-2">
                   {actor.name}
+                  <svg className="w-5 h-5 text-[#C9A34E] shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-label="Verified">
+                    <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
                 </h1>
               </div>
+
+              {/* BIO SNIPPET — fills the panel with real context */}
+              <p className="text-xs text-slate-300/90 leading-relaxed font-light line-clamp-4">
+                {actor.bioShort || actor.bio || "A celebrated South African screen performer."}
+              </p>
+
+              {/* SOCIAL PROOF — supporters + total raised */}
+              {stats && stats.tipsCount > 0 && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-white/5 bg-white/5 px-3 py-2.5">
+                    <span className="block text-lg font-extrabold text-white leading-none">
+                      {stats.tipsCount}
+                    </span>
+                    <span className="block text-[10px] uppercase tracking-widest text-slate-400 mt-1">
+                      Supporters
+                    </span>
+                  </div>
+                  <div className="rounded-xl border border-[#C9A34E]/20 bg-[#C9A34E]/5 px-3 py-2.5">
+                    <span className="block text-lg font-extrabold text-[#E6C878] leading-none">
+                      R{stats.totalAmount.toLocaleString()}
+                    </span>
+                    <span className="block text-[10px] uppercase tracking-widest text-slate-400 mt-1">
+                      Raised
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* TIER 2 TEASER — cross-sell private access, scrolls to booking */}
+              {servicesSummary && (
+                <button
+                  onClick={scrollToTier2}
+                  className="mt-auto group flex items-center justify-between rounded-2xl border border-[#C9A34E]/25 bg-gradient-to-r from-[#C9A34E]/10 to-transparent px-4 py-3.5 text-left transition-all duration-300 hover:border-[#C9A34E]/50 hover:from-[#C9A34E]/20"
+                >
+                  <div>
+                    <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[#C9A34E]">
+                      ✨ Private Access
+                    </span>
+                    <span className="block text-sm font-semibold text-white mt-0.5">
+                      {servicesSummary.count} exclusive {servicesSummary.count === 1 ? "experience" : "experiences"} · from R
+                      {(servicesSummary.minPrice / 100).toFixed(0)}
+                    </span>
+                  </div>
+                  <svg className="w-5 h-5 text-[#C9A34E] transition-transform duration-300 group-hover:translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                  </svg>
+                </button>
+              )}
             </div>
 
             {/* RIGHT WIZARD PANEL */}

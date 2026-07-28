@@ -266,6 +266,21 @@ model Booking {
   @@index([status])
 }
 
+// Broadcaster integration SDK (#8). TV partners embed the QR overlay via
+// <iframe src="/embed/overlay?...&key=API_KEY">. Each partner gets an API
+// key so usage can be attributed/revoked. `scanCount` on QRCode already
+// captures per-actor/per-episode analytics the overlay drives.
+model Partner {
+  id        String   @id @default(uuid())
+  name      String
+  apiKey    String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([apiKey])
+}
+
 // Premium placement (#2) and promotional boosts (#7) — one-time timeboxed
 // purchases through the same Transaction pipeline. Activating one sets the
 // Actor's premium flag / priorityRank for the window between startsAt/endsAt.

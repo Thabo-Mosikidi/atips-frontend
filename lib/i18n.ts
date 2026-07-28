@@ -29,7 +29,8 @@ const en = {
   "common.securePaypal": "Secure payment powered by PayPal",
   "common.minTip": "Minimum tip is R{min}",
   "home.badge": "QR Tipping Directory",
-  "home.heroTitle": "Directly Reward the Talents You Value",
+  "home.heroTitle": "Directly Reward the Talents You",
+  "home.heroTitleAccent": "Value",
   "home.heroSubtitle":
     "Scan a QR code during screen credits or search our directory to tip your favorite South African actors. 80% goes directly to them.",
   "home.searchPlaceholder": "Search actors by name...",

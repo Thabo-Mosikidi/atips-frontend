@@ -139,7 +139,7 @@ export default function TierTwoAccess({
   if (!loaded || services.length === 0) return null;
 
   return (
-    <div className="relative max-w-4xl w-full mx-auto mt-6">
+    <div id="tier2-access" className="relative max-w-4xl w-full mx-auto mt-6 scroll-mt-6">
       <div className="glass-panel rounded-3xl p-6 sm:p-8 shadow-[0_24px_80px_rgba(2,6,23,0.7)] backdrop-blur-xl border border-white/10">
         <div className="flex items-center justify-between mb-6">
           <div className="space-y-1">
