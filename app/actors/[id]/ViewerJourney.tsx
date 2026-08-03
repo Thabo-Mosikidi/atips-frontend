@@ -90,22 +90,22 @@ export default function ViewerJourney({
             </div>
 
             {/* PRIMARY ACTIONS → dedicated pages */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              {/* Flushy primary: Tip Now (with a shine sweep on hover) */}
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              {/* Flashy primary: Tip Now — continuous glow pulse + auto shine sweep */}
               <Link
                 href={tipHref}
-                className="group relative flex-1 overflow-hidden rounded-2xl bg-gradient-to-r from-[#D90429] to-[#A60321] px-8 py-5 text-center text-base font-extrabold text-white shadow-xl shadow-red-950/40 transition-all duration-200 hover:from-[#ff1a3c] hover:to-[#b30026] active:scale-[0.98] red-glow-hover"
+                className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-[#D90429] to-[#A60321] px-6 py-3 text-sm font-extrabold text-white transition-all duration-200 hover:from-[#ff1a3c] hover:to-[#b30026] active:scale-[0.97] flashy-glow"
               >
                 <span className="relative z-10 inline-flex items-center justify-center gap-2">
                   <span aria-hidden>💛</span> Tip Now
                 </span>
-                <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                <span className="animate-shine pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/35 to-transparent" />
               </Link>
 
               {/* Secondary button: Book Private Access */}
               <Link
                 href={bookHref}
-                className="flex-1 rounded-2xl border border-[#C9A34E]/50 bg-[#C9A34E]/10 px-8 py-5 text-center text-base font-bold text-[#E6C878] transition-all duration-200 hover:bg-[#C9A34E]/20 active:scale-[0.98] gold-glow-hover"
+                className="rounded-xl border border-[#C9A34E]/50 bg-[#C9A34E]/10 px-6 py-3 text-sm font-bold text-[#E6C878] transition-all duration-200 hover:bg-[#C9A34E]/20 active:scale-[0.97] gold-glow-hover"
               >
                 Book Private Access
               </Link>

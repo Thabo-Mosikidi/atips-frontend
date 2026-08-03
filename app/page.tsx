@@ -69,14 +69,14 @@ export default async function HomePage({
           muted
           loop
           playsInline
-          preload="metadata"
+          preload="auto"
           aria-hidden="true"
-          className="absolute inset-0 h-full w-full object-cover opacity-45"
+          className="absolute inset-0 h-full w-full object-cover opacity-90"
         >
           <source src="/images/background.mp4" type="video/mp4" />
         </video>
-        {/* Readability overlay — keeps hero copy legible over any frame */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0A1F44]/75 via-[#0A1F44]/85 to-[#0A1F44]" />
+        {/* Readability overlay — light enough to see the video, dark enough for text */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0A1F44]/45 via-[#0A1F44]/55 to-[#0A1F44]" />
         {/* Subtle brand glows on top of the video */}
         <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-red-500/10 rounded-full blur-[150px] animate-soft-pulse-1" />
         <div className="absolute bottom-0 right-[-10%] w-[600px] h-[600px] bg-[#C9A34E]/10 rounded-full blur-[150px] animate-soft-pulse-2" />
