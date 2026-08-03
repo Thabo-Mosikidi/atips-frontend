@@ -31,6 +31,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Minimum tip is R10" }, { status: 400 });
     }
 
+    // Official rule: maximum single transaction is R1,000.
+    if (amount > 1000) {
+      return NextResponse.json({ error: "Maximum single tip is R1,000" }, { status: 400 });
+    }
+
     // Verify actor exists
     const actor = await prisma.actor.findUnique({
       where: { id: actorId },

@@ -62,12 +62,24 @@ export default async function HomePage({
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#0A1F44]">
-      {/* PREMIUM BACKGROUND GLOWS */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
+      {/* HERO BACKGROUND VIDEO + OVERLAY (fades into the navy directory) */}
+      <div className="absolute inset-x-0 top-0 h-[95vh] -z-10 overflow-hidden">
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover opacity-45"
+        >
+          <source src="/images/background.mp4" type="video/mp4" />
+        </video>
+        {/* Readability overlay — keeps hero copy legible over any frame */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0A1F44]/75 via-[#0A1F44]/85 to-[#0A1F44]" />
+        {/* Subtle brand glows on top of the video */}
         <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-red-500/10 rounded-full blur-[150px] animate-soft-pulse-1" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-gold-500/10 rounded-full blur-[150px] animate-soft-pulse-2" />
-        <div className="absolute top-[40%] left-[30%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px]" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0A1F44] via-[#071735] to-[#040e29]" />
+        <div className="absolute bottom-0 right-[-10%] w-[600px] h-[600px] bg-[#C9A34E]/10 rounded-full blur-[150px] animate-soft-pulse-2" />
       </div>
 
       {/* HERO SECTION WITH CLEAN VISUAL HIERARCHY */}
@@ -126,7 +138,7 @@ export default async function HomePage({
           {[
             { n: "01", t: "Scan or search", d: "Find an actor via a QR code on-screen or our directory." },
             { n: "02", t: "Tip or book", d: "Send a tip, or book private video calls & mentorship." },
-            { n: "03", t: "They receive 80%", d: "Most of every rand goes directly to the performer." },
+            { n: "03", t: "They get rewarded", d: "Your support reaches the performer you love, directly." },
           ].map((s) => (
             <div key={s.n} className="glass-panel rounded-2xl border border-white/10 p-5 text-left">
               <span className="text-xs font-bold tracking-widest gold-text-gradient">{s.n}</span>
@@ -193,7 +205,7 @@ export default async function HomePage({
                     href={`/actors/${actor.id}`}
                     className="block w-full text-center bg-gradient-to-r from-[#D90429] to-[#A60321] text-white py-2.5 text-sm rounded-xl font-semibold hover:from-[#ff1a3c] hover:to-[#b30026] transition-all duration-200 active:scale-[0.98] shadow-md shadow-red-950/30 red-glow-hover"
                   >
-                    View Profile
+                    Support {actor.name.split(" ")[0]}
                   </Link>
                 </div>
               </div>

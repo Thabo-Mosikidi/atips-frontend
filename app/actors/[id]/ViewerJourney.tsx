@@ -85,48 +85,29 @@ export default function ViewerJourney({
                 </svg>
               </h1>
               <p className="text-sm sm:text-base text-slate-300 font-light max-w-xl leading-relaxed">
-                Reward {firstName} for the work you love — 80% of every tip goes straight to the artist — or book private one-on-one access.
+                Reward {firstName} for the work you love, or book private one-on-one access — video calls, mentorship and industry advice.
               </p>
             </div>
 
-            {/* TWO CLEAR CHOICES → dedicated pages */}
-            <div className="grid sm:grid-cols-2 gap-4 pt-1">
+            {/* PRIMARY ACTIONS → dedicated pages */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              {/* Flushy primary: Tip Now (with a shine sweep on hover) */}
               <Link
                 href={tipHref}
-                className="group rounded-3xl border border-[#D90429]/30 bg-gradient-to-br from-[#D90429]/15 to-transparent p-5 transition-all duration-300 hover:border-[#D90429]/60 red-glow-hover"
+                className="group relative flex-1 overflow-hidden rounded-2xl bg-gradient-to-r from-[#D90429] to-[#A60321] px-8 py-5 text-center text-base font-extrabold text-white shadow-xl shadow-red-950/40 transition-all duration-200 hover:from-[#ff1a3c] hover:to-[#b30026] active:scale-[0.98] red-glow-hover"
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl">💛</span>
-                  <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#D90429] bg-[#D90429]/10 px-2 py-1 rounded-full">
-                    Tier 1
-                  </span>
-                </div>
-                <h3 className="mt-3 text-lg font-bold text-white">Send a Tip</h3>
-                <p className="mt-1 text-xs text-slate-400 leading-relaxed">
-                  A quick thank-you from R10. Fast, secure, and 80% goes straight to {firstName}.
-                </p>
-                <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-white group-hover:gap-2 transition-all">
-                  Tip now <span aria-hidden>→</span>
+                <span className="relative z-10 inline-flex items-center justify-center gap-2">
+                  <span aria-hidden>💛</span> Tip Now
                 </span>
+                <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
               </Link>
 
+              {/* Secondary button: Book Private Access */}
               <Link
                 href={bookHref}
-                className="group rounded-3xl border border-[#C9A34E]/30 bg-gradient-to-br from-[#C9A34E]/15 to-transparent p-5 transition-all duration-300 hover:border-[#C9A34E]/60 gold-glow-hover"
+                className="flex-1 rounded-2xl border border-[#C9A34E]/50 bg-[#C9A34E]/10 px-8 py-5 text-center text-base font-bold text-[#E6C878] transition-all duration-200 hover:bg-[#C9A34E]/20 active:scale-[0.98] gold-glow-hover"
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl">✨</span>
-                  <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#C9A34E] bg-[#C9A34E]/10 px-2 py-1 rounded-full">
-                    Tier 2
-                  </span>
-                </div>
-                <h3 className="mt-3 text-lg font-bold text-white">Book Private Access</h3>
-                <p className="mt-1 text-xs text-slate-400 leading-relaxed">
-                  Video calls, mentorship & industry advice — exclusive one-on-one time with {firstName}.
-                </p>
-                <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#E6C878] group-hover:gap-2 transition-all">
-                  See experiences <span aria-hidden>→</span>
-                </span>
+                Book Private Access
               </Link>
             </div>
           </div>

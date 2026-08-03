@@ -11,9 +11,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-const PRESET_AMOUNTS = [10, 25, 50, 100];
+const PRESET_AMOUNTS = [10, 25, 50];
 const MIN_AMOUNT = 10;
-const MAX_AMOUNT = 10000;
+const MAX_AMOUNT = 1000; // official rule: max single transaction R1,000
 
 export default function TipFlow({
   actorId,
@@ -136,7 +136,7 @@ export default function TipFlow({
           </div>
 
           {/* PRESETS */}
-          <div className="mt-6 grid grid-cols-4 gap-2 sm:gap-3">
+          <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3">
             {PRESET_AMOUNTS.map((amount) => {
               const selected = String(amount) === tipAmount && !customAmount;
               return (
@@ -181,25 +181,14 @@ export default function TipFlow({
             </div>
           </div>
 
-          {/* SPLIT */}
-          <div className="mt-4 rounded-2xl border border-white/10 bg-[#0b2046]/60 p-4 space-y-2">
+          {/* AMOUNT SUMMARY */}
+          <div className="mt-4 rounded-2xl border border-white/10 bg-[#0b2046]/60 p-4">
             <div className="flex items-end justify-between">
               <div>
-                <span className="text-[10px] uppercase tracking-wider text-slate-400">You give</span>
+                <span className="text-[10px] uppercase tracking-wider text-slate-400">Your tip</span>
                 <p className="text-3xl font-extrabold text-white leading-none mt-1">R{effectiveAmount}</p>
               </div>
               <span className="text-xs text-slate-400">≈ ${usdAmount}</span>
-            </div>
-            <div className="gold-hairline" />
-            <div className="space-y-1.5 text-xs">
-              <div className="flex justify-between text-[#E6C878]">
-                <span>Direct to {firstName} (80%)</span>
-                <span className="font-bold">R{(effectiveAmount * 0.8).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>Platform &amp; hosting (20%)</span>
-                <span>R{(effectiveAmount * 0.2).toFixed(2)}</span>
-              </div>
             </div>
           </div>
 

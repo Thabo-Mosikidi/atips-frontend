@@ -141,14 +141,8 @@ export default function SuccessPage({ searchParams }: SuccessPageProps) {
                   <span className="text-xs font-bold text-white">{actorName || "Featured Performer"}</span>
                 </div>
                 <div className="flex justify-between border-b border-white/5 pb-2">
-                  <span className="text-xs text-slate-400">Amount Gained (ZAR)</span>
+                  <span className="text-xs text-slate-400">Amount (ZAR)</span>
                   <span className="text-sm font-extrabold text-white">R{amount || (tipDetails ? tipDetails.amount / 100 : "--")}</span>
-                </div>
-                <div className="flex justify-between border-b border-white/5 pb-2">
-                  <span className="text-xs text-slate-400">Direct to Actor (80%)</span>
-                  <span className="text-xs font-semibold text-[#C9A34E]">
-                    R{amount ? (Number(amount) * 0.8).toFixed(2) : (tipDetails ? (tipDetails.actorAmount / 100).toFixed(2) : "--")}
-                  </span>
                 </div>
                 {tipDetails?.readableReference && (
                   <div className="flex justify-between pt-1">

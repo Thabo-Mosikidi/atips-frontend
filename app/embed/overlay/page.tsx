@@ -103,7 +103,7 @@ export default async function OverlayPage({
             {actor.name}
           </span>
           <span className="block text-[10px] text-slate-300 leading-tight mt-0.5">
-            Scan to reward this performer · 80% goes to them
+            Scan to reward this performer
           </span>
         </div>
       </div>
