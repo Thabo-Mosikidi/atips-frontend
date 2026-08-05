@@ -61,9 +61,9 @@ export default async function HomePage({
   const locale = DEFAULT_LOCALE; // TODO: derive from a locale switcher / Accept-Language
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#0A1F44]">
+    <main className="relative isolate min-h-screen overflow-hidden bg-[#0A1F44]">
       {/* HERO BACKGROUND VIDEO + OVERLAY (fades into the navy directory) */}
-      <div className="absolute inset-x-0 top-0 h-[95vh] -z-10 overflow-hidden">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[95vh] -z-10 overflow-hidden">
         <video
           autoPlay
           muted
