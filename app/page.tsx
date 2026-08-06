@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { actors as fallbackActors } from "@/data/actors";
 import { t, DEFAULT_LOCALE } from "@/lib/i18n";
+import HeroVideoCard from "./components/HeroVideoCard";
 
 async function getActors(search?: string) {
   try {
@@ -61,26 +62,17 @@ export default async function HomePage({
   const locale = DEFAULT_LOCALE; // TODO: derive from a locale switcher / Accept-Language
 
   return (
-    <main className="relative isolate min-h-screen overflow-hidden bg-[#0A1F44]">
-      {/* HERO BACKGROUND VIDEO + OVERLAY (fades into the navy directory) */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[95vh] -z-10 overflow-hidden">
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          aria-hidden="true"
-          className="absolute inset-0 h-full w-full object-cover opacity-90"
-        >
-          <source src="/images/background.mp4" type="video/mp4" />
-        </video>
-        {/* Readability overlay — light enough to see the video, dark enough for text */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0A1F44]/45 via-[#0A1F44]/55 to-[#0A1F44]" />
-        {/* Subtle brand glows on top of the video */}
+    <main className="relative min-h-screen overflow-hidden bg-[#0A1F44]">
+      {/* NAVY BACKGROUND GLOWS */}
+      <div className="absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-red-500/10 rounded-full blur-[150px] animate-soft-pulse-1" />
-        <div className="absolute bottom-0 right-[-10%] w-[600px] h-[600px] bg-[#C9A34E]/10 rounded-full blur-[150px] animate-soft-pulse-2" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-[#C9A34E]/10 rounded-full blur-[150px] animate-soft-pulse-2" />
+        <div className="absolute top-[40%] left-[30%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0A1F44] via-[#071735] to-[#040e29]" />
       </div>
+
+      {/* Intro video — plays once in a side card, then vanishes */}
+      <HeroVideoCard />
 
       {/* HERO SECTION WITH CLEAN VISUAL HIERARCHY */}
       <section className="max-w-7xl mx-auto px-6 pt-16 pb-12 text-center space-y-6 relative z-10 animate-rise-in">

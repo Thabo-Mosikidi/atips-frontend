@@ -32,7 +32,7 @@ const en = {
   "home.heroTitle": "Directly Reward the Talents You",
   "home.heroTitleAccent": "Value",
   "home.heroSubtitle":
-    "Scan a QR code during screen credits or search our directory to tip your favorite South African actors. 80% goes directly to them.",
+    "Scan a QR code during screen credits or search our directory to tip your favorite South African actors.",
   "home.searchPlaceholder": "Search actors by name...",
   "booking.title": "Book Private Access",
   "booking.videoCall": "Private Video Call",
