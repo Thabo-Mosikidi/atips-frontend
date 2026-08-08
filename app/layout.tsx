@@ -31,13 +31,12 @@ export default function RootLayout({
               href="/"
               className="flex items-center hover:opacity-90 transition-opacity"
             >
-              {/* Official A.TIPS wordmark. It's a dark-on-white logo, so it sits
-                  on a clean white chip (a transparent bg would make the dark
-                  logo invisible on the navy header). */}
+              {/* Official A.TIPS wordmark, processed to a transparent PNG with
+                  the dark parts recoloured white so it blends on the navy header. */}
               <img
-                src="/images/atips-logo.jpeg"
-                alt="A.TIPS — Turning audience appreciation into financial appreciation for actors"
-                className="h-10 w-auto rounded-md bg-white object-contain px-1"
+                src="/images/atips-logo.png"
+                alt="A.TIPS"
+                className="h-9 w-auto object-contain"
               />
             </Link>
 
