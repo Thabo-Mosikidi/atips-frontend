@@ -29,22 +29,16 @@ export default function RootLayout({
             {/* LOGO + BRAND */}
             <Link
               href="/"
-              className="flex items-center gap-2 text-lg font-semibold hover:opacity-90 transition-opacity"
+              className="flex items-center hover:opacity-90 transition-opacity"
             >
+              {/* Official A.TIPS wordmark. It's a dark-on-white logo, so it sits
+                  on a clean white chip (a transparent bg would make the dark
+                  logo invisible on the navy header). */}
               <img
-                src="/favicon.png"
-                alt="A.Tips Logo"
-                className="w-8 h-8 object-contain"
+                src="/images/atips-logo.jpeg"
+                alt="A.TIPS — Turning audience appreciation into financial appreciation for actors"
+                className="h-10 w-auto rounded-md bg-white object-contain px-1"
               />
-              <span className="tracking-[-0.02em] font-extrabold text-white text-xl">
-                <span>A</span>
-                <span className="text-[#D90429]">.</span>
-                <span className="text-[#D90429]">T</span>
-                <span className="text-[#C9A34E]">I</span>
-                <span>P</span>
-                <span className="text-[#D90429]">S</span>
-                <span className="ml-[2px] text-[10px] align-top font-light text-slate-400">™</span>
-              </span>
             </Link>
 
             {/* NAVIGATION / TAGLINE */}

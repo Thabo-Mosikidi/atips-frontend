@@ -1,14 +1,23 @@
 "use client";
 
 /**
- * HeroVideoCard — a fixed, floating "ATIPS Advert" video card on the landing
- * page. Autoplays muted (browser policy), and the viewer controls it:
- *   - mute / unmute (audible on demand)
- *   - enlarge / shrink (small corner card ↔ large centered view)
- *   - close (it stays put until the viewer removes it — no auto-dismiss)
+ * HeroVideoCard — a fixed, floating "A.TIPS Advert" video card on the landing
+ * page. Autoplays muted and loops; the viewer controls it fully:
+ *   - mute / unmute
+ *   - enlarge / shrink (corner card ↔ large centered view)
+ *   - play / pause, rewind / forward, and a scrubber (playtrack) to jump to
+ *     any second/scene
+ *   - close (stays until the viewer removes it — no auto-dismiss)
  */
 
 import { useRef, useState } from "react";
+
+function fmt(seconds: number): string {
+  if (!isFinite(seconds) || seconds < 0) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
 
 export default function HeroVideoCard() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -16,6 +25,9 @@ export default function HeroVideoCard() {
   const [closing, setClosing] = useState(false);
   const [muted, setMuted] = useState(true);
   const [enlarged, setEnlarged] = useState(false);
+  const [playing, setPlaying] = useState(true);
+  const [current, setCurrent] = useState(0);
+  const [duration, setDuration] = useState(0);
 
   if (!visible) return null;
 
@@ -35,12 +47,32 @@ export default function HeroVideoCard() {
     }
   };
 
+  const togglePlay = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) v.play().catch(() => {});
+    else v.pause();
+  };
+
+  const skip = (delta: number) => {
+    const v = videoRef.current;
+    if (!v) return;
+    const d = v.duration || 0;
+    v.currentTime = Math.min(Math.max(0, v.currentTime + delta), d);
+  };
+
+  const seek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.currentTime = Number(e.target.value);
+    setCurrent(v.currentTime);
+  };
+
   const iconBtn =
     "flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/75";
 
   return (
     <>
-      {/* Backdrop only in enlarged mode; click to shrink back */}
       {enlarged && (
         <div
           className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
@@ -52,7 +84,7 @@ export default function HeroVideoCard() {
         className={`${
           enlarged
             ? "fixed inset-0 z-50 flex items-center justify-center p-4"
-            : "fixed bottom-4 right-4 z-40 w-56 sm:w-64"
+            : "fixed bottom-4 right-4 z-40 w-60 sm:w-72"
         } transition-all duration-300 ${
           closing ? "translate-y-4 opacity-0" : "translate-y-0 opacity-100"
         }`}
@@ -62,7 +94,7 @@ export default function HeroVideoCard() {
             enlarged ? "w-full max-w-4xl" : "w-full"
           }`}
         >
-          {/* CAPTION + CONTROLS BAR */}
+          {/* CAPTION + WINDOW CONTROLS */}
           <div className="flex items-center justify-between gap-2 bg-[#0A1F44]/95 px-3 py-2">
             <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#C9A34E]">
               <span className="h-1.5 w-1.5 rounded-full bg-[#D90429]" />
@@ -108,10 +140,52 @@ export default function HeroVideoCard() {
             loop
             playsInline
             preload="auto"
+            onPlay={() => setPlaying(true)}
+            onPause={() => setPlaying(false)}
+            onTimeUpdate={(e) => setCurrent(e.currentTarget.currentTime)}
+            onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
             className="block h-auto w-full"
           >
             <source src="/images/background.mp4" type="video/mp4" />
           </video>
+
+          {/* PLAYBACK CONTROLS + SCRUBBER (playtrack) */}
+          <div className="flex items-center gap-2 bg-[#0A1F44]/95 px-3 py-2">
+            <button onClick={() => skip(-5)} aria-label="Rewind 5 seconds" className={iconBtn}>
+              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z" />
+              </svg>
+            </button>
+            <button onClick={togglePlay} aria-label={playing ? "Pause" : "Play"} className={iconBtn}>
+              {playing ? (
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M6 5h4v14H6zM14 5h4v14h-4z" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              )}
+            </button>
+            <button onClick={() => skip(5)} aria-label="Forward 5 seconds" className={iconBtn}>
+              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M13 6v12l8.5-6L13 6zm-.5 6L4 6v12l8.5-6z" />
+              </svg>
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={duration || 0}
+              step={0.1}
+              value={current}
+              onChange={seek}
+              aria-label="Seek video"
+              className="h-1 flex-1 cursor-pointer accent-[#C9A34E]"
+            />
+            <span className="min-w-[64px] text-right text-[10px] tabular-nums text-slate-300">
+              {fmt(current)} / {fmt(duration)}
+            </span>
+          </div>
         </div>
       </div>
     </>
